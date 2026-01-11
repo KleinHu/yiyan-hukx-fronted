@@ -89,16 +89,16 @@
   import { useI18n } from 'vue-i18n';
   import { useStorage } from '@vueuse/core';
   // import { useUserStore, useAppStore } from '@/store';
-  import { useAppStore } from '@/store';
+  import { useUserStore, useAppStore } from '@/store';
   import useLoading from '@/hooks/loading';
-  // import type { LoginInfo } from '@/api/model/securityModel';
+  import type { LoginInfo } from '@/api/model/securityModel';
   import Verify from '@/components/verifition/index.vue';
 
   const router = useRouter();
   const { t } = useI18n();
   const errorMessage = ref('');
   const { loading, setLoading } = useLoading();
-  // const userStore = useUserStore();
+  const userStore = useUserStore();
   const appStore = useAppStore();
 
   const menuPattern = computed(() => appStore.menuPattern);
@@ -131,72 +131,18 @@
       }
     }
   };
-  // const login = async (captchaVerification?: string) => {
-  //   setLoading(true);
-  //   try {
-  //     await userStore.login({
-  //       username: userInfo.username,
-  //       password: window.btoa(userInfo.password),
-  //       captchaVerification,
-  //     } as LoginInfo);
-  //     const { redirect, ...othersQuery } = router.currentRoute.value.query;
-  //     const toName = menuPattern.value === 1 ? 'rootMenu' : 'Workplace';
-  //     if (redirect) {
-  //       // 有redirect的时候需要先等待权限和用户信息加载完毕才能跳转
-  //       router.push({
-  //         name: 'Buff',
-  //         query: {
-  //           ...othersQuery,
-  //           redirect,
-  //         },
-  //       });
-  //     } else {
-  //       router.push({
-  //         name: toName,
-  //         query: {
-  //           ...othersQuery,
-  //         },
-  //       });
-  //     }
-  //     Message.success(t('login.form.login.success'));
-  //     const { rememberPassword } = loginConfig.value;
-  //     const { username, password } = userInfo;
-  //     // 实际生产环境需要进行加密存储。
-  //     // The actual production environment requires encrypted storage.
-  //     loginConfig.value.username = rememberPassword ? username : '';
-  //     loginConfig.value.password = rememberPassword ? password : '';
-  //   } catch (err) {
-  //     errorMessage.value = (err as Error).message;
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-  const login = async () => {
+  const login = async (captchaVerification?: string) => {
     setLoading(true);
     try {
-      // 模拟mock登录请求
-      const response = await fetch('/api/user/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: userInfo.username,
-          password: userInfo.password, // 注意mock中不需要base64编码
-        }),
-      });
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.message || '登录失败');
-      }
-
-      // 模拟设置token
-      localStorage.setItem('token', data.data.token);
-
+      await userStore.login({
+        username: userInfo.username,
+        password: window.btoa(userInfo.password),
+        captchaVerification,
+      } as LoginInfo);
       const { redirect, ...othersQuery } = router.currentRoute.value.query;
       const toName = menuPattern.value === 1 ? 'rootMenu' : 'Workplace';
       if (redirect) {
+        // 有redirect的时候需要先等待权限和用户信息加载完毕才能跳转
         router.push({
           name: 'Buff',
           query: {
@@ -215,6 +161,8 @@
       Message.success(t('login.form.login.success'));
       const { rememberPassword } = loginConfig.value;
       const { username, password } = userInfo;
+      // 实际生产环境需要进行加密存储。
+      // The actual production environment requires encrypted storage.
       loginConfig.value.username = rememberPassword ? username : '';
       loginConfig.value.password = rememberPassword ? password : '';
     } catch (err) {
