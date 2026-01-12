@@ -1,73 +1,80 @@
-<!-- 快捷入口 -->
-<!--created by yuyupeng 2023/11/14-->
 <template>
   <a-spin :loading="loading" style="width: 100%">
     <a-card
       class="general-card"
+      :bordered="false"
       :header-style="{ paddingBottom: '0' }"
-      :body-style="{ padding: '17px 20px 21px 20px' }"
+      :body-style="{ padding: '16px 20px' }"
     >
       <template #title>
-        <a-row align="center">
-          快捷入口
-          <a-badge
-            style="margin-left: 5px"
-            :count="quickAccessDataList.length"
-          />
-        </a-row>
+        <div class="card-title">
+          <icon-apps class="title-icon" />
+          <span>快捷入口</span>
+        </div>
       </template>
       <template #extra>
         <a-space>
-          <a-tooltip content="刷新">
-            <icon-sync @click="getQuickAccessList" />
-          </a-tooltip>
-          <a-tooltip content="管理">
-            <icon-settings @click="openMenuSelectModal" />
-          </a-tooltip>
+          <a-space v-if="pagedActions.length > 1" size="small">
+            <a-button
+              type="text"
+              size="small"
+              :disabled="currentPage === 0"
+              @click="prevPage"
+            >
+              <template #icon><icon-left /></template>
+            </a-button>
+            <a-button
+              type="text"
+              size="small"
+              :disabled="currentPage === pagedActions.length - 1"
+              @click="nextPage"
+            >
+              <template #icon><icon-right /></template>
+            </a-button>
+          </a-space>
+          <a-link @click="openMenuSelectModal">
+            <template #icon><icon-settings /></template>
+          </a-link>
         </a-space>
       </template>
-      <a-scrollbar style="max-height: 300px; overflow: auto">
-        <a-row
+      <div class="quick-access-wrapper">
+        <a-carousel
           v-if="quickAccessDataList.length > 0"
-          :gutter="[6, 6]"
-          style="width: 100%"
+          ref="carouselRef"
+          v-model:current="currentPage"
+          :auto-play="false"
+          indicator-type="none"
+          show-arrow="never"
+          animation-name="slide"
+          class="quick-access-carousel"
         >
-          <a-col
-            v-for="item in quickAccessDataList"
-            :key="item.id"
-            :xs="8"
-            :sm="8"
-            :md="6"
-            :lg="6"
-            :xl="6"
-            :xxl="6"
+          <a-carousel-item
+            v-for="(page, pageIdx) in pagedActions"
+            :key="pageIdx"
           >
-            <a-row justify="center">
-              <a-button v-if="item.alternateField1" @click="toMenu(item)">
-                <template #icon>
-                  <MenuIcon :element="item" :size="20" />
-                </template>
-              </a-button>
-              <a-button v-else @click="toMenu(item)">
-                <template #icon>
-                  <icon-empty
-                    style="color: rgb(36, 103, 255, 0.8)"
-                    :size="20"
+            <div class="quick-actions-grid">
+              <div
+                v-for="(item, index) in page"
+                :key="index"
+                class="action-item"
+                @click="toMenu(item)"
+              >
+                <div
+                  class="action-icon-wrapper"
+                  :style="{ backgroundColor: getIconBgColor(item) }"
+                >
+                  <component
+                    :is="item.icon"
+                    :style="{ color: getIconColor(item) }"
                   />
-                </template>
-              </a-button>
-            </a-row>
-            <a-row justify="center" style="margin-top: 5px">
-              <a-col :span="24">
-                <div style="font-size: 12px; text-align: center">
-                  {{ item.title }}
                 </div>
-              </a-col>
-            </a-row>
-          </a-col>
-        </a-row>
+                <div class="action-label">{{ item.label }}</div>
+              </div>
+            </div>
+          </a-carousel-item>
+        </a-carousel>
         <a-empty v-else />
-      </a-scrollbar>
+      </div>
     </a-card>
     <MenuSelectModal
       ref="menuSelectModalRef"
@@ -80,64 +87,81 @@
 </template>
 
 <script lang="ts" setup>
-  import useLoading from '@/hooks/loading';
+  import { ref, onMounted, computed } from 'vue';
+
+  import { useRouter } from 'vue-router';
   import { Notification } from '@arco-design/web-vue';
-  import { onMounted, ref } from 'vue';
+  import useLoading from '@/hooks/loading';
   import { useUserStore } from '@/store';
   import MenuSelectModal from '@/components/cac-components/menu-select-modal/index.vue';
-  import MenuIcon from '@/components/cac-components/menu-select-modal/components/menu-icon.vue';
   import {
     queryQuickAccessRecordList,
     updateQuickAccessRecord,
   } from '@/api/system/quickAccess';
-  import { QuickAccessRecord } from '@/api/system/model/quickAccessModel';
-  import { useRouter } from 'vue-router';
 
   defineProps({
     excludeNames: { type: Array<string>, default: () => [] },
   });
 
-  const { loading, setLoading } = useLoading(); // 控制是否加载中
-  const router = useRouter(); // 路由
-  const quickAccessDataList = ref<any[]>([]); // 快捷入口数据
+  const { loading, setLoading } = useLoading();
+  const router = useRouter();
+  const quickAccessDataList = ref<any[]>([]);
   const menuSelectModalRef = ref<any>();
+  const carouselRef = ref<any>();
+  const currentPage = ref(0);
+
+  // 固定的配色方案
+  const colors = [
+    { color: '#1890ff', bgColor: '#e8f3ff' },
+    { color: '#722ed1', bgColor: '#f3f0ff' },
+    { color: '#52c41a', bgColor: '#e8ffea' },
+    { color: '#fa8c16', bgColor: '#fff7e8' },
+    { color: '#f5222d', bgColor: '#fff1f0' },
+    { color: '#13c2c2', bgColor: '#e6fffb' },
+  ];
+
+  const getIconColor = (item: any) =>
+    colors[item.originalIdx % colors.length].color;
+  const getIconBgColor = (item: any) =>
+    colors[item.originalIdx % colors.length].bgColor;
+
+  const actions = computed(() => {
+    return quickAccessDataList.value.map((item, index) => ({
+      label: item.title,
+      icon: item.alternateField1 || 'icon-apps',
+      name: item.name,
+      originalIdx: index,
+    }));
+  });
+
+  // 每页 16 个 (4x4 布局)
+  const pagedActions = computed(() => {
+    const pages = [];
+    for (let i = 0; i < actions.value.length; i += 16) {
+      pages.push(actions.value.slice(i, i + 16));
+    }
+    return pages;
+  });
+
+  const prevPage = () => {
+    if (currentPage.value > 0) {
+      currentPage.value -= 1;
+      carouselRef.value?.toIndex(currentPage.value);
+    }
+  };
+
+  const nextPage = () => {
+    if (currentPage.value < pagedActions.value.length - 1) {
+      currentPage.value += 1;
+      carouselRef.value?.toIndex(currentPage.value);
+    }
+  };
   /**
    * fun
-   */
-  /**
-   * @description 开启部门人员选择组件modal
    */
   const openMenuSelectModal = () => {
     menuSelectModalRef.value.openMenuSelectModal();
   };
-  /**
-   * @description 转到快捷入口详情，通过url跳转
-   * @param item 点击的快捷入口信息
-   */
-  /* const toTodoDetail = (item: TodoRecord) => {
-    window.open(item.taskUrl, '_blank');
-  }; */
-  /**
-   * @description 删除快捷入口
-   * @param item 点击的快捷入口信息
-   */
-  /* const deleteTodo = async (item: TodoRecord) => {
-    try {
-      const { data } = await deleteTodoRecord(item.id as string);
-      if (data) {
-        getQuickAccessList(); // 重新获取快捷入口信息
-      }
-    } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      Notification.error({
-        content: `出现异常！${error}`,
-        closable: true,
-      });
-    }
-  }; */
-  /**
-   * @description 根据userId查询他的所有快捷入口数据
-   */
   const getQuickAccessList = async () => {
     setLoading(true);
     const userStore = useUserStore();
@@ -149,21 +173,13 @@
         orderField: 'weight', // 对weight字段进行排序
         order: 'asc', // 排序方式，分为asc升序 desc降序
       });
-      const dataTemp = [] as any[];
-      data.list.forEach((item) => {
-        // 为适配MenuSelectModel组件，数据格式要转换一下
-        dataTemp.push({
-          name: item.path, // 实际上是路由名称name,不是path
-          title: item.name, // 菜单中文名
-          alternateField1: item.alternateField1, // 备用字段1，存的是icon图标名称
-          chineseTitle: item.name, // 菜单中文名
-          meta: {
-            title: item.name, // 菜单中文名
-            icon: item.alternateField1, // 备用字段1，存的是icon图标名称
-          },
-        });
-      });
-      quickAccessDataList.value = dataTemp;
+      quickAccessDataList.value = data.list.map((item: any) => ({
+        name: item.path,
+        title: item.name,
+        alternateField1: item.alternateField1,
+        chineseTitle: item.name,
+        meta: { title: item.name, icon: item.alternateField1 },
+      }));
     } catch (error) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       Notification.error({
@@ -174,90 +190,129 @@
       setLoading(false);
     }
   };
-  /**
-   * @description 菜单对话框提交触发
-   * @param chosenMenuList
-   */
   const submitMenuSelectModal = async (chosenMenuList: any) => {
     const userStore = useUserStore();
-    const reqdata = [] as QuickAccessRecord[];
-    let index = 1;
-    chosenMenuList.forEach((item: any) => {
-      const req = {
-        name: item.meta.title ? item.meta.title : item.name, // 菜单中文名称
-        path: item.name, // 路由名称
-        personCode: userStore.userCode, // 人员工号
-        weight: String(index), // 权重
-      } as QuickAccessRecord;
-      if (item.meta.icon) {
-        req.alternateField1 = item.meta.icon; // 备用字段1，存了icon名称
-      }
-      reqdata.push(req);
-      index += 1;
-    });
+    const reqdata = chosenMenuList.map((item: any, index: number) => ({
+      name: item.meta.title || item.name,
+      path: item.name,
+      personCode: userStore.userCode,
+      weight: String(index + 1),
+      alternateField1: item.meta.icon,
+    }));
     try {
       const res = (await updateQuickAccessRecord(reqdata)) as any;
       if (res.code === 200) {
-        Notification.success({
-          content: '操作成功！',
-        });
-      } else {
-        Notification.error({
-          title: '操作失败！',
-          content: res.message,
-        });
+        Notification.success({ content: '操作成功！' });
       }
-    } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      Notification.error({
-        content: `出现异常！${error}`,
-        closable: true,
-        duration: 20000,
-      });
     } finally {
-      getQuickAccessList(); // 更新一下快捷入口细腻
+      getQuickAccessList();
     }
   };
-  /**
-   * @description 跳转菜单
-   */
+
   const toMenu = (item: any) => {
-    router.push({ name: item.name });
+    if (item.name) {
+      router.push({ name: item.name }).catch(() => {
+        Notification.info({ content: `功能「${item.label}」正在接入中...` });
+      });
+    }
   };
-  /**
-   * onMounted
-   */
   onMounted(() => {
     getQuickAccessList();
   });
 </script>
 
+<script lang="ts">
+  export default {
+    name: 'QuickAccess',
+  };
+</script>
+
 <style scoped lang="less">
   .general-card {
-    min-height: 395px;
+    border-radius: 8px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
-  :deep(.arco-table-tr) {
-    height: 44px;
-
-    .arco-typography {
-      margin-bottom: 0;
-    }
-  }
-
-  .increases-cell {
+  .card-title {
     display: flex;
     align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
 
-    span {
-      margin-right: 4px;
+    .title-icon {
+      color: rgb(var(--arcoblue-6));
     }
   }
 
-  .textEllipsis {
-    width: 480px;
+  .quick-access-wrapper {
+    height: 280px;
+    flex: 1;
+  }
+
+  .quick-access-carousel {
+    height: 100%;
+    position: relative;
+
+    :deep(.arco-carousel-item) {
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    :deep(.arco-carousel-indicator-wrapper) {
+      display: none !important;
+    }
+  }
+
+  .quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 12px;
+    padding: 8px 4px;
+  }
+
+  .action-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    padding: 8px;
+    border-radius: 8px;
+
+    &:hover {
+      background-color: var(--color-fill-2);
+      transform: translateY(-2px);
+
+      .action-icon-wrapper {
+        transform: scale(1.1);
+      }
+    }
+  }
+
+  .action-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 6px;
+    transition: transform 0.3s;
+  }
+
+  .action-label {
+    font-size: 12px;
+    color: var(--color-text-1);
+    text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    width: 100%;
+    font-weight: 500;
   }
 </style>

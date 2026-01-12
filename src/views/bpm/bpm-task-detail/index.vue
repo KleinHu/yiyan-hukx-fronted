@@ -1,112 +1,165 @@
-<!-- 流程明细：展示表单 -->
+<!-- 流程明细：展示表单（重构版本） -->
 <template>
-  <div>
-    <!--按钮组-->
-    <div class="actions">
-      <a-space>
-        <a-button
-          type="primary"
-          :disabled="!allowApprove || loadingBtn"
-          @click="approve"
-        >
-          审批
-        </a-button>
-        <a-button
-          type="outline"
-          :disabled="loadingBtn"
-          :loading="loadingSave"
-          @click="saveData"
-        >
-          保存
-        </a-button>
-        <a-button
-          v-if="candicate != -1 && !isTransferRoam"
-          :disabled="loadingBtn"
-          type="outline"
-          @click="lockTask()"
-        >
-          {{ lockStatus }}
-        </a-button>
-        <a-button type="outline" @click="trackInst">
-          <template #icon>
-            <icon-star-fill v-if="tracked === '1'" />
-            <icon-star v-else />
-          </template>
-          {{ trackText }}
-        </a-button>
-
-        <!-- 加签 -->
-        <ModalAddSign
-          v-if="canAddAsign && !isTransferRoam"
-          :task-id="bpmTaskId"
-          :disabled="loadingBtn"
-          :form-secret-level="formSecretLevel"
-        />
-
-        <!-- 驳回 -->
-        <a-button
-          v-if="canRefuse && !isTransferRoam"
-          :disabled="loadingBtn"
-          type="outline"
-          :form-secret-level="formSecretLevel"
-          @click="openRejectModal"
-        >
-          驳回
-        </a-button>
-
-        <!-- 转办 -->
-        <ModalTaskTransfer
-          v-if="canTransfer && !loadingBtn"
-          :task-id="bpmTaskId"
-          :subject="bpmTask?.subject"
-          :form-secret-level="formSecretLevel"
-          @after-submit="loadDetail(bpmInst?.instId || '')"
-        />
-
-        <!--流转-->
-        <ModalTaskRoam
-          v-if="!isCanRoamTransfer && !loadingBtn"
-          :task-id="bpmTaskId"
-          :subject="bpmTask?.subject"
-          :form-secret-level="formSecretLevel"
-          @after-submit="loadTaskDetail"
-        />
-        <a-button
-          v-if="isCanRoamTransfer && !loadingBtn"
-          type="outline"
-          @click="cancelRoamTransfer"
-        >
-          取消流转
-        </a-button>
-        <ModalTaskRoamList
-          v-if="isCanRoamTransfer && !loadingBtn"
-          :task-id="bpmTaskId"
-        />
-
-        <a-button :disabled="loadingBtn" type="outline" @click="openCancel">
-          作废
-        </a-button>
-        <DrawerCheckHistory :inst-id="bpmInst?.instId || ''" />
-        <ModalBpmImage :inst-id="bpmInst?.instId" />
-        <a-button type="outline" @click="close()"> 关闭 </a-button>
-      </a-space>
+  <div class="bpm-detail-layout">
+    <!-- 顶部标题区域 -->
+    <div class="bpm-detail-header-wrapper">
+      <BpmDetailHeader :instance="bpmInst" :task="bpmTask" />
     </div>
 
-    <!--表单（外部表单）-->
-    <div class="instance-container">
-      <InstanceTitle :instance="bpmInst" />
-      <InstanceStatus :status="instStatus" class="instance-status" />
-      <FormFrame
-        ref="frameRef"
-        :form-id="formId"
-        :def-id="bpmInst?.defId"
-        :inst-id="bpmInst?.instId"
-        :node-id="bpmTask?.key"
-        @load="handleLoad"
-      />
+    <!-- 内容区域 -->
+    <div class="bpm-detail-body">
+      <div class="bpm-detail-main">
+        <a-tabs default-active-key="form" class="bpm-tabs">
+          <a-tab-pane key="form" title="表单详情">
+            <div class="form-container">
+              <FormFrame
+                ref="frameRef"
+                :form-id="formId"
+                :def-id="bpmInst?.defId"
+                :inst-id="bpmInst?.instId"
+                :node-id="bpmTask?.key"
+                @load="handleLoad"
+              />
+            </div>
+          </a-tab-pane>
+          <a-tab-pane key="map" title="流程图">
+            <ProcessMapInline
+              :inst-id="bpmInst?.instId"
+              :def-id="bpmInst?.defId"
+            />
+          </a-tab-pane>
+        </a-tabs>
+      </div>
+
+      <!-- 右侧边栏 -->
+      <div class="bpm-detail-sidebar">
+        <!-- 其他操作按钮（原顶部按钮转移至此） -->
+        <div class="other-actions-card">
+          <h3 class="card-title">流程操作</h3>
+          <a-space direction="vertical" fill>
+            <a-button
+              v-if="allowApprove"
+              type="primary"
+              long
+              :disabled="loadingBtn"
+              @click="approve"
+            >
+              <template #icon><icon-check-circle /></template>
+              常规审批
+            </a-button>
+            <a-button
+              type="outline"
+              long
+              :disabled="loadingBtn"
+              :loading="loadingSave"
+              @click="saveData"
+            >
+              <template #icon><icon-save /></template>
+              保存单据
+            </a-button>
+            <a-button
+              v-if="candicate != -1 && !isTransferRoam"
+              type="outline"
+              long
+              :disabled="loadingBtn"
+              @click="lockTask()"
+            >
+              <template #icon
+                ><icon-lock v-if="lockStatus === '锁定任务'" /><icon-unlock
+                  v-else
+              /></template>
+              {{ lockStatus }}
+            </a-button>
+            <a-button type="outline" long @click="trackInst">
+              <template #icon>
+                <icon-star-fill v-if="tracked === '1'" />
+                <icon-star v-else />
+              </template>
+              {{ trackText }}流程
+            </a-button>
+
+            <!-- 复杂操作（保留原Modal触发按钮） -->
+            <ModalAddSign
+              v-if="canAddAsign && !isTransferRoam"
+              :task-id="bpmTaskId"
+              :disabled="loadingBtn"
+              :form-secret-level="formSecretLevel"
+              class="long-modal-btn"
+            />
+
+            <a-button
+              v-if="canRefuse && !isTransferRoam"
+              type="outline"
+              long
+              :disabled="loadingBtn"
+              @click="openRejectModal"
+            >
+              <template #icon><icon-reply /></template>
+              常规驳回
+            </a-button>
+
+            <ModalTaskTransfer
+              v-if="canTransfer && !loadingBtn"
+              :task-id="bpmTaskId"
+              :subject="bpmTask?.subject"
+              :form-secret-level="formSecretLevel"
+              class="long-modal-btn"
+              @after-submit="loadDetail(bpmInst?.instId || '')"
+            />
+
+            <ModalTaskRoam
+              v-if="!isCanRoamTransfer && !loadingBtn"
+              :task-id="bpmTaskId"
+              :subject="bpmTask?.subject"
+              :form-secret-level="formSecretLevel"
+              class="long-modal-btn"
+              @after-submit="loadTaskDetail"
+            />
+
+            <ModalTaskRoamList
+              v-if="isCanRoamTransfer && !loadingBtn"
+              :task-id="bpmTaskId"
+              class="long-modal-btn"
+            />
+
+            <a-button
+              v-if="isCanRoamTransfer && !loadingBtn"
+              type="outline"
+              long
+              @click="cancelRoamTransfer"
+            >
+              取消流转
+            </a-button>
+
+            <a-button
+              :disabled="loadingBtn"
+              type="outline"
+              long
+              status="danger"
+              @click="openCancel"
+            >
+              <template #icon><icon-delete /></template>
+              作废流程
+            </a-button>
+
+            <a-button type="outline" long @click="close()">
+              <template #icon><icon-close /></template>
+              关闭页面
+            </a-button>
+          </a-space>
+        </div>
+
+        <!-- 流转记录卡片（移动至右侧） -->
+        <div class="history-card">
+          <h3 class="card-title">流转记录</h3>
+          <div class="history-scroll-container">
+            <CheckHistoryInline :inst-id="bpmInst?.instId || ''" />
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!--对话框：审批-->
+    <!-- 隐藏的对话框组件（保持原有逻辑） -->
     <ModalTaskApprove
       v-if="allowApprove"
       v-model:visible="visibleApprove"
@@ -123,14 +176,12 @@
       @submit="approveData"
     />
 
-    <!--对话框：审批（已流转）-->
     <ModalTaskApproveTransfer
       v-model:visible="visibleApproveTransfer"
       :task-id="bpmTaskId"
       :task-config="taskConfig"
     />
 
-    <!--对话框：驳回-->
     <ModalTaskReject
       v-model:visible="visibleReject"
       :task-id="bpmTaskId"
@@ -139,7 +190,6 @@
       @submit="rejectData"
     />
 
-    <!--对话框：流程作废-->
     <ModalInstanceCancel
       v-model:visible="visibleCancel"
       :inst-id="bpmInst?.instId || ''"
@@ -149,7 +199,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, unref, ref } from 'vue';
+  import { computed, unref, ref, onMounted } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import { useRouter } from 'vue-router';
   import { BpmDefConfigRecord } from '@/api/bpm/model/bpmDefineModel';
@@ -168,11 +218,14 @@
   import { trackBpmInst } from '@/api/bpm/bpm-track';
   import { BpmInstRecord } from '@/api/bpm/model/bpmInstanceModel';
   import { loadDetail } from '@/utils/bpm/bpm-util';
-  import DrawerCheckHistory from '@/components/bpm/drawer-check-history.vue';
-  import ModalBpmImage from '@/components/bpm/modal-bpm-image.vue';
-  import InstanceTitle from '@/components/bpm/instance-title.vue';
-  import InstanceStatus from '@/components/bpm/instance-status.vue';
   import FormFrame from '@/components/bpm/form-frame.vue';
+
+  // 新引入的重构组件
+  import BpmDetailHeader from './components/BpmDetailHeader.vue';
+  import CheckHistoryInline from './components/CheckHistoryInline.vue';
+  import ProcessMapInline from './components/ProcessMapInline.vue';
+
+  // 原有弹窗组件
   import ModalTaskTransfer from './components/modal-task-transfer.vue';
   import ModalAddSign from './components/modal-add-sign.vue';
   import ModalTaskRoam from './components/modal-task-roam.vue';
@@ -469,44 +522,136 @@
     setSecretLevel();
   };
 
-  loadTaskDetail();
+  onMounted(() => {
+    loadTaskDetail();
+  });
 </script>
 
 <style scoped lang="less">
-  .actions {
-    position: fixed;
-    top: 0;
-    right: 0;
-    left: 0;
-    z-index: 5;
-    height: 60px;
-    padding: 14px 20px 14px 0;
-    text-align: right;
-    background: var(--color-bg-2);
+  .bpm-detail-layout {
+    min-height: 100vh;
+    background-color: #f2f3f5;
+    display: flex;
+    flex-direction: column;
   }
 
-  .frame-container {
-    width: 100%;
-    height: calc(100vh - 60px);
-    margin-top: 60px;
+  .bpm-detail-header-wrapper {
+    padding: 20px 32px 0;
   }
 
-  .instance-container {
-    position: relative;
-    box-sizing: border-box;
-    // width: 1301px;
-    width: calc(100vw - 60px);
-    min-height: 100%;
-    margin: 60px auto 0;
-    padding: 0 10px;
+  .bpm-detail-body {
+    display: flex;
+    gap: 20px;
+    padding: 20px 32px;
+    height: calc(100vh - 240px); // 减去头部预估高度，使底部对齐
+    overflow: hidden;
+  }
+
+  .bpm-detail-main {
+    flex: 1;
     background: #fff;
-    border: solid 1px #dadde0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 100%;
+
+    .bpm-tabs {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+
+      :deep(.arco-tabs-content) {
+        flex: 1;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      :deep(.arco-tabs-pane) {
+        height: 100%;
+      }
+    }
   }
 
-  .instance-status {
-    position: absolute;
-    top: 0;
-    right: 10px;
-    z-index: 2;
+  .form-container {
+    padding: 0;
+    height: 100%;
+
+    :deep(div) {
+      height: 100%;
+    }
+  }
+
+  .bpm-detail-sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+  }
+
+  .other-actions-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--color-border-2);
+    flex-shrink: 0;
+
+    .card-title {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text-1);
+    }
+  }
+
+  .history-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid var(--color-border-2);
+    display: flex;
+    flex-direction: column;
+    flex: 1; // 自动填充剩余高度，实现与左侧持平
+    overflow: hidden;
+
+    .card-title {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text-1);
+    }
+
+    .history-scroll-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+
+      :deep(.check-history-inline) {
+        padding: 0; // 内部 padding 由外部卡片统一控制
+      }
+    }
+  }
+
+  .long-modal-btn {
+    width: 100%;
+    :deep(.arco-btn) {
+      width: 100%;
+      justify-content: center;
+      border-color: var(--color-border-3);
+      color: var(--color-text-2);
+
+      &:hover {
+        background-color: var(--color-fill-1);
+      }
+    }
+  }
+
+  :deep(.arco-tabs-nav-tab) {
+    padding-left: 20px;
   }
 </style>

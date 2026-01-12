@@ -1,7 +1,13 @@
 <!--我的跟踪-->
 <template>
   <div class="list-card-container">
-    <a-card title="我的跟踪" class="general-card">
+    <a-card :bordered="false" class="general-card bpm-dashboard-card">
+      <template #title>
+        <div class="card-header">
+          <icon-star class="header-icon" />
+          <span class="header-text">我的跟踪</span>
+        </div>
+      </template>
       <div class="bpm-tree-wrapper">
         <div class="bpm-tree-operator">
           <BpmCategoryTree
@@ -25,12 +31,20 @@
             @page-size-change="onPageSizeChange"
           >
             <template #subject="{ record }">
-              <a-link @click="gotoDetail(record)">{{
-                record.bpmInst.subject
-              }}</a-link>
+              <a-button type="text" size="small" @click="gotoDetail(record)">
+                {{ record.bpmInst.subject }}
+              </a-button>
             </template>
             <template #action="{ record }">
-              <a-link @click="removeMyTracked(record.instId)">取消跟踪</a-link>
+              <a-button
+                type="text"
+                status="danger"
+                size="small"
+                @click="removeMyTracked(record.instId)"
+              >
+                <template #icon><icon-star /></template>
+                取消跟踪
+              </a-button>
             </template>
           </a-table>
         </div>
@@ -244,23 +258,57 @@
 <style scoped lang="less">
   .list-card-container {
     padding: 20px;
-    border-right: 1px var(--border-radius-default);
+  }
+
+  .bpm-dashboard-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+
+    :deep(.arco-card-header) {
+      border-bottom: 1px solid var(--color-border-1);
+      padding: 16px 20px;
+    }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .header-icon {
+      font-size: 18px;
+      color: var(--color-primary-light-4);
+    }
+
+    .header-text {
+      font-weight: 600;
+      font-size: 16px;
+    }
   }
 
   .bpm-tree {
     &-wrapper {
-      overflow-y: hidden;
+      overflow: hidden;
+      margin-top: 10px;
     }
 
     &-operator {
       float: left;
-      width: 240px;
+      width: 220px;
+      height: 100%;
+      border-right: 1px solid var(--color-border-1);
+      padding-right: 16px;
     }
 
     &-content {
-      padding-left: 14px;
-      overflow: hidden;
-      border-left: 1px solid var(--color-border-1);
+      margin-left: 236px;
+      padding-left: 4px;
+      min-height: 500px;
     }
+  }
+
+  :deep(.arco-table-th) {
+    background-color: var(--color-fill-1);
+    font-weight: 600;
   }
 </style>

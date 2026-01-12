@@ -1,7 +1,13 @@
 <!--我的转办-->
 <template>
   <div class="list-card-container">
-    <a-card title="我的转办" class="general-card">
+    <a-card :bordered="false" class="general-card bpm-dashboard-card">
+      <template #title>
+        <div class="card-header">
+          <icon-export class="header-icon" />
+          <span class="header-text">我的转办</span>
+        </div>
+      </template>
       <div class="bpm-tree-wrapper">
         <div class="bpm-tree-operator">
           <BpmCategoryTree
@@ -25,21 +31,24 @@
             @page-size-change="onPageSizeChange"
           >
             <template #type="{ record }">
-              <a-tag :color="typeMap[record.type].color">
+              <a-tag :color="typeMap[record.type].color" bordered size="small">
                 <span>{{ typeMap[record.type].text }}</span>
               </a-tag>
             </template>
             <template #action="{ record }">
               <a-space>
                 <retrieveModal
-                  type="link"
+                  type="button"
                   :subject="record.subject"
                   :task-id="record.taskId"
                   :layerid="record.layerid"
                   :lydata="record.lydata"
                   @after-submit="handleSearch"
                 />
-                <a-link @click="gotoDetail(record)">明细</a-link>
+                <a-button type="text" size="small" @click="gotoDetail(record)">
+                  <template #icon><icon-eye /></template>
+                  明细
+                </a-button>
               </a-space>
             </template>
           </a-table>
@@ -191,7 +200,7 @@
       align: 'center',
       dataIndex: 'index',
       width: 80,
-      render: ({ rowIndex }) => rowIndex + 1,
+      render: ({ rowIndex }: { rowIndex: number }) => rowIndex + 1,
       fixed: 'left',
     },
     {
@@ -255,23 +264,57 @@
 <style scoped lang="less">
   .list-card-container {
     padding: 20px;
-    border-right: 1px var(--border-radius-default);
+  }
+
+  .bpm-dashboard-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+
+    :deep(.arco-card-header) {
+      border-bottom: 1px solid var(--color-border-1);
+      padding: 16px 20px;
+    }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .header-icon {
+      font-size: 18px;
+      color: var(--color-primary-light-4);
+    }
+
+    .header-text {
+      font-weight: 600;
+      font-size: 16px;
+    }
   }
 
   .bpm-tree {
     &-wrapper {
-      overflow-y: hidden;
+      overflow: hidden;
+      margin-top: 10px;
     }
 
     &-operator {
       float: left;
-      width: 240px;
+      width: 220px;
+      height: 100%;
+      border-right: 1px solid var(--color-border-1);
+      padding-right: 16px;
     }
 
     &-content {
-      padding-left: 14px;
-      overflow: hidden;
-      border-left: 1px solid var(--color-border-1);
+      margin-left: 236px;
+      padding-left: 4px;
+      min-height: 500px;
     }
+  }
+
+  :deep(.arco-table-th) {
+    background-color: var(--color-fill-1);
+    font-weight: 600;
   }
 </style>

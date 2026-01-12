@@ -1,7 +1,13 @@
 <!--我的待办-->
 <template>
   <div class="list-card-container">
-    <a-card title="流程待办" class="general-card">
+    <a-card :bordered="false" class="general-card bpm-dashboard-card">
+      <template #title>
+        <div class="card-header">
+          <icon-schedule class="header-icon" />
+          <span class="header-text">流程待办</span>
+        </div>
+      </template>
       <div class="bpm-tree-wrapper">
         <div class="bpm-tree-operator">
           <BpmCategoryTree
@@ -25,19 +31,41 @@
             @page-size-change="onPageSizeChange"
           >
             <template #status="{ record }">
-              <a-tag v-if="record.status == 'UNHANDLE'" color="red">待办</a-tag>
-              <a-tag v-else-if="record.status == 'HANDLE'" color="green"
-                >处理中</a-tag
+              <a-tag v-if="record.status == 'UNHANDLE'" color="red" bordered>
+                <template #icon><icon-clock-circle /></template>
+                待办
+              </a-tag>
+              <a-tag
+                v-else-if="record.status == 'HANDLE'"
+                color="orange"
+                bordered
               >
-            </template>
-            <template #assignee="{ record }">
-              <a-tag v-for="taskExe in record.taskExecutors" :key="taskExe.id">
-                <a-icon :type="taskExe.type" />
-                {{ taskExe.name }}
+                <template #icon><icon-sync /></template>
+                处理中
               </a-tag>
             </template>
+            <template #assignee="{ record }">
+              <a-space :size="4">
+                <a-tag
+                  v-for="taskExe in record.taskExecutors"
+                  :key="taskExe.id"
+                  size="small"
+                  color="blue"
+                  bordered
+                >
+                  <template #icon>
+                    <icon-user v-if="taskExe.type === 'user'" />
+                    <icon-user-group v-else />
+                  </template>
+                  {{ taskExe.name }}
+                </a-tag>
+              </a-space>
+            </template>
             <template #action="{ record }">
-              <a-link @click="handleTask(record)">办理</a-link>
+              <a-button type="text" size="small" @click="handleTask(record)">
+                <template #icon><icon-edit /></template>
+                办理
+              </a-button>
             </template>
           </a-table>
         </div>
@@ -216,7 +244,7 @@ u.USER_ID_ = #{w.curUserId} AND t.TENANT_ID_ = #{w.curTenantId} OR u.GROUP_ID_ I
       align: 'center',
       dataIndex: 'index',
       width: 80,
-      render: ({ rowIndex }) => rowIndex + 1,
+      render: ({ rowIndex }: { rowIndex: number }) => rowIndex + 1,
       fixed: 'left',
     },
     {
@@ -284,23 +312,57 @@ u.USER_ID_ = #{w.curUserId} AND t.TENANT_ID_ = #{w.curTenantId} OR u.GROUP_ID_ I
 <style scoped lang="less">
   .list-card-container {
     padding: 20px;
-    border-right: 1px var(--border-radius-default);
+  }
+
+  .bpm-dashboard-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+
+    :deep(.arco-card-header) {
+      border-bottom: 1px solid var(--color-border-1);
+      padding: 16px 20px;
+    }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .header-icon {
+      font-size: 18px;
+      color: var(--color-primary-light-4);
+    }
+
+    .header-text {
+      font-weight: 600;
+      font-size: 16px;
+    }
   }
 
   .bpm-tree {
     &-wrapper {
-      overflow-y: hidden;
+      overflow: hidden;
+      margin-top: 10px;
     }
 
     &-operator {
       float: left;
-      width: 240px;
+      width: 220px;
+      height: 100%;
+      border-right: 1px solid var(--color-border-1);
+      padding-right: 16px;
     }
 
     &-content {
-      padding-left: 14px;
-      overflow: hidden;
-      border-left: 1px solid var(--color-border-1);
+      margin-left: 236px;
+      padding-left: 4px;
+      min-height: 500px;
     }
+  }
+
+  :deep(.arco-table-th) {
+    background-color: var(--color-fill-1);
+    font-weight: 600;
   }
 </style>

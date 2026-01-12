@@ -4,43 +4,71 @@
   <a-spin :loading="loading" style="width: 100%">
     <a-card
       class="general-card"
+      :bordered="false"
       :header-style="{ paddingBottom: '0' }"
-      :body-style="{ padding: '17px 20px 21px 20px' }"
+      :body-style="{ padding: '16px 20px' }"
     >
       <template #title>
-        <a-row align="center">
-          待办事项
-          <a-badge style="margin-left: 5px" :count="todoDataList.length" />
-        </a-row>
+        <div class="card-title">
+          <icon-check-circle-fill class="title-icon" />
+          <span>系统待办</span>
+          <a-tag
+            color="red"
+            size="small"
+            style="margin-left: 8px; border-radius: 10px"
+          >
+            {{ todoDataList.length }} 个待办
+          </a-tag>
+        </div>
       </template>
       <template #extra>
-        <a-space>
-          <a-tooltip content="刷新">
-            <icon-sync @click="getTodoList" />
-          </a-tooltip>
-          <a-tooltip content="查看更多">
-            <icon-more />
-          </a-tooltip>
-        </a-space>
+        <a-dropdown>
+          <a-link><icon-more /></a-link>
+          <template #content>
+            <a-doption @click="getTodoList">刷新</a-doption>
+          </template>
+        </a-dropdown>
       </template>
-      <a-space direction="vertical" :size="10" fill>
-        <a-list :max-height="300" :scrollbar="true" size="small">
-          <a-list-item v-for="item in todoDataList" :key="item.id">
-            <div class="textEllipsis" @click="toTodoDetail(item)">
-              {{ item.title }}
+      <div class="todo-list-wrapper">
+        <div class="todo-list">
+          <div
+            v-for="item in todoDataList"
+            :key="item.id"
+            class="todo-item"
+            @click="toTodoDetail(item)"
+          >
+            <div class="todo-left">
+              <div class="todo-icon-wrapper">
+                <icon-clock-circle style="color: #ffb400" />
+              </div>
+              <div class="todo-info">
+                <div class="todo-title-row">
+                  <span class="todo-title">{{ item.title }}</span>
+                  <span class="todo-time">{{ item.createTime || '今日' }}</span>
+                </div>
+              </div>
             </div>
-            <template #actions>
+            <div class="todo-actions" @click.stop>
               <a-popconfirm
                 content="确定删除吗？"
                 type="warning"
                 @ok="deleteTodo(item)"
               >
-                <icon-delete style="color: hotpink" />
+                <a-button
+                  type="text"
+                  size="small"
+                  class="delete-btn"
+                  :style="{ color: '#ff4d4f' }"
+                >
+                  <template #icon>
+                    <icon-delete />
+                  </template>
+                </a-button>
               </a-popconfirm>
-            </template>
-          </a-list-item>
-        </a-list>
-      </a-space>
+            </div>
+          </div>
+        </div>
+      </div>
     </a-card>
   </a-spin>
 </template>
@@ -131,30 +159,136 @@
 
 <style scoped lang="less">
   .general-card {
-    min-height: 395px;
+    border-radius: 8px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
-  :deep(.arco-table-tr) {
-    height: 44px;
-
-    .arco-typography {
-      margin-bottom: 0;
-    }
+  .todo-list-wrapper {
+    height: 280px;
+    overflow-y: auto;
+    flex: 1;
   }
 
-  .increases-cell {
+  .card-title {
     display: flex;
     align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
 
-    span {
-      margin-right: 4px;
+    .title-icon {
+      color: rgb(var(--arcoblue-6));
     }
   }
 
-  .textEllipsis {
-    width: 480px;
-    white-space: nowrap;
+  .todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 0;
+  }
+
+  .todo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 4px;
+    border-bottom: 1px solid var(--color-border-2);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background-color: var(--color-fill-2);
+      .todo-title {
+        color: rgb(var(--arcoblue-6));
+      }
+      .todo-actions {
+        opacity: 1;
+      }
+    }
+  }
+
+  .todo-actions {
+    flex-shrink: 0;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+
+    .delete-btn {
+      padding: 4px;
+      font-size: 14px;
+
+      &:hover {
+        background-color: #fff1f0;
+      }
+    }
+  }
+
+  .todo-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .todo-icon-wrapper {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .todo-info {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .todo-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .todo-title {
+    font-size: 14px;
+    color: var(--color-text-1);
+    transition: all 0.2s;
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &.completed {
+      text-decoration: line-through;
+      color: var(--color-text-4);
+    }
+  }
+
+  .todo-time {
+    font-size: 12px;
+    color: var(--color-text-4);
+    flex-shrink: 0;
+  }
+
+  .add-task {
+    border-top: 1px solid var(--color-fill-2);
+    padding-top: 8px;
+
+    :deep(.arco-btn) {
+      color: rgb(var(--arcoblue-6));
+      background-color: #f0f7ff;
+      border-radius: 6px;
+
+      &:hover {
+        background-color: #e0efff;
+      }
+    }
   }
 </style>
