@@ -81,3 +81,55 @@ operatelog：操作日志功能（包含完整的 Controller、Service、DAO、E
 后端服务：my-dxe-backed
 
 这是这个项目的技术栈，请遵从技术要求写代码
+
+
+-- 前端编码要求
+1. 所有的请求需要参考 @/api/bpm 文件下的标准接口
+2. 接口封装了自己的请求工具，文件夹为 @/utils/request 。必须用封装的工具，不要自己二次封装axios，也不允许直接使用axios
+3. 接口方法的写法示例：
+```
+  /**
+   * 获取部门树数据
+   */
+  const getDepartmentTree = async () => {
+    try {
+      loading.value = true;
+      const { data } = await departmentApi.getDepartmentTree();
+      departmentList.value = data || [];
+      // 默认展开第一层
+      expandedKeys.value = data
+        .map((dept) => dept.deptId)
+        .filter((id): id is string => !!id);
+    } catch (error) {
+      console.error('获取部门数据失败:', error);
+      Message.error('获取部门数据失败');
+    } finally {
+      loading.value = false;
+    }
+  };
+```
+4. 所有Arco Design的图标，页面组件不需要二次引入，已经进行全局注册，直接使用即可
+
+5. 组件分页获取代码示例
+```
+    /**
+   * 分页获取
+   */
+  const fetchData = async () => {
+    try {
+      loading.value = true;
+      const { data } = await employeeApi.getEmployeePage({
+        pageNum: pagination.current,
+        pageSize: pagination.pageSize,
+        userName: searchKey.value,
+        departmentId: filterDept.value,
+      });
+      employeeList.value = data.list || [];
+      pagination.total = data.total;
+    } finally {
+      loading.value = false;
+    }
+  };
+  ```
+  列表是list属性，总数是total属性
+  

@@ -13,6 +13,10 @@ export default mergeConfig(
       },
       // proxy代理
       proxy: {
+        '^/api/hr': {
+          target: 'http://localhost:10008',
+          changeOrigin: true,
+        },
         // ===== JPAAS 相关请求（必须先匹配，避免被 /api 规则捕获）=====
         '^/api/api-bpm': {
           target: 'http://localhost:9900',
