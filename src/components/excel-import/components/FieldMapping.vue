@@ -65,12 +65,34 @@
             </a-select>
           </template>
 
+          <template #enabledTitle>
+            <div class="header-checkbox">
+              <a-checkbox
+                v-model="allEnabledChecked"
+                :indeterminate="indeterminateEnabled"
+              >
+                包含
+              </a-checkbox>
+            </div>
+          </template>
+
           <template #enabled="{ record }">
             <a-switch
               v-model="record.enabled"
               type="round"
               @change="handleMappingChange"
             />
+          </template>
+
+          <template #requiredTitle>
+            <div class="header-checkbox">
+              <a-checkbox
+                v-model="allRequiredChecked"
+                :indeterminate="indeterminateRequired"
+              >
+                必填
+              </a-checkbox>
+            </div>
           </template>
 
           <template #required="{ record }">
@@ -159,8 +181,93 @@
 
   const emit = defineEmits<Emits>();
 
-  // 表格列定义
-  const columns = [
+  // 字段映射列表
+  const mappings = ref<FieldMapping[]>([]);
+
+  // 全选状态（用于 v-model 绑定）
+  const allEnabledChecked = computed({
+    get: () => {
+      const validMappings = mappings.value.filter((m) => m.fieldName);
+      if (validMappings.length === 0) return false;
+      return validMappings.every((m) => m.enabled);
+    },
+    set: (value: boolean) => {
+      handleToggleAllEnabled(value);
+    },
+  });
+
+  const allRequiredChecked = computed({
+    get: () => {
+      const validMappings = mappings.value.filter((m) => m.fieldName);
+      if (validMappings.length === 0) return false;
+      return validMappings.every((m) => m.required);
+    },
+    set: (value: boolean) => {
+      handleToggleAllRequired(value);
+    },
+  });
+
+  // 计算属性
+  const configuredCount = computed(() => {
+    return mappings.value.filter((m) => m.fieldName).length;
+  });
+
+  const enabledCount = computed(() => {
+    return mappings.value.filter((m) => m.enabled && m.fieldName).length;
+  });
+
+  const requiredCount = computed(() => {
+    return mappings.value.filter((m) => m.required).length;
+  });
+
+  // 计算"包含"是否处于半选状态
+  const indeterminateEnabled = computed(() => {
+    const validMappings = mappings.value.filter((m) => m.fieldName);
+    if (validMappings.length === 0) return false;
+    const enabled = validMappings.filter((m) => m.enabled).length;
+    return enabled > 0 && enabled < validMappings.length;
+  });
+
+  // 计算"必填"是否处于半选状态
+  const indeterminateRequired = computed(() => {
+    const validMappings = mappings.value.filter((m) => m.fieldName);
+    if (validMappings.length === 0) return false;
+    const required = validMappings.filter((m) => m.required).length;
+    return required > 0 && required < validMappings.length;
+  });
+
+  /**
+   * 切换所有"包含"状态
+   * @param checked 是否选中
+   */
+  const handleToggleAllEnabled = (checked: boolean) => {
+    const validMappings = mappings.value.filter((m) => m.fieldName);
+    validMappings.forEach((m) => {
+      m.enabled = checked;
+    });
+    handleMappingChange();
+  };
+
+  /**
+   * 切换所有"必填"状态
+   * @param checked 是否选中
+   */
+  const handleToggleAllRequired = (checked: boolean) => {
+    const validMappings = mappings.value.filter((m) => m.fieldName);
+    validMappings.forEach((m) => {
+      m.required = checked;
+    });
+    handleMappingChange();
+  };
+
+  // 处理映射变化
+  const handleMappingChange = () => {
+    // 触发响应式更新
+    mappings.value = [...mappings.value];
+  };
+
+  // 表格列定义（使用computed确保响应式更新）
+  const columns = computed(() => [
     {
       title: 'Excel列标题',
       dataIndex: 'excelColumn',
@@ -183,14 +290,16 @@
       title: '包含',
       dataIndex: 'enabled',
       slotName: 'enabled',
-      width: 80,
+      titleSlotName: 'enabledTitle',
+      width: 120,
       align: 'center',
     },
     {
       title: '必填',
       dataIndex: 'required',
       slotName: 'required',
-      width: 80,
+      titleSlotName: 'requiredTitle',
+      width: 120,
       align: 'center',
     },
     {
@@ -200,23 +309,7 @@
       ellipsis: true,
       tooltip: true,
     },
-  ];
-
-  // 字段映射列表
-  const mappings = ref<FieldMapping[]>([]);
-
-  // 计算属性
-  const configuredCount = computed(() => {
-    return mappings.value.filter((m) => m.fieldName).length;
-  });
-
-  const enabledCount = computed(() => {
-    return mappings.value.filter((m) => m.enabled && m.fieldName).length;
-  });
-
-  const requiredCount = computed(() => {
-    return mappings.value.filter((m) => m.required).length;
-  });
+  ]);
 
   const duplicateFields = computed(() => {
     const fieldNames = mappings.value
@@ -316,12 +409,6 @@
     if (value === null || value === undefined || value === '') return '-';
     const str = String(value);
     return str.length > 30 ? `${str.slice(0, 30)}...` : str;
-  };
-
-  // 处理映射变化
-  const handleMappingChange = () => {
-    // 触发响应式更新
-    mappings.value = [...mappings.value];
   };
 
   // 初始化
@@ -445,5 +532,14 @@
 
   :deep(.arco-table-td) {
     height: 56px;
+  }
+
+  .header-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    :deep(.arco-checkbox) {
+      font-weight: 600;
+    }
   }
 </style>

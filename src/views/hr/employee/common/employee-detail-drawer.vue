@@ -306,28 +306,20 @@
                   <div v-if="educationList.length === 0" class="empty-list">
                     暂无教育记录
                   </div>
-                  <div v-else class="data-list education-list">
-                    <div
+                  <div v-else class="data-list">
+                    <DataItem
                       v-for="(item, index) in educationList"
                       :key="index"
-                      class="data-item"
+                      border-color="#00b42a"
+                      :main="item.major || '-'"
+                      :extra="`${item.endYear} 毕业`"
                     >
-                      <a-row
-                        justify="space-between"
-                        align="center"
-                        style="margin-bottom: 8px"
-                      >
-                        <a-col :span="16">
-                          <a-tag size="small" color="green">{{
-                            getDegreeName(item.degree)
-                          }}</a-tag>
-                        </a-col>
-                        <a-col :span="8" style="text-align: right">
-                          <span class="item-time">{{ item.endYear }} 毕业</span>
-                        </a-col>
-                      </a-row>
-                      <div class="item-main">{{ item.major || '-' }}</div>
-                    </div>
+                      <template #title>
+                        <a-tag size="small" color="green">{{
+                          getDegreeName(item.degree)
+                        }}</a-tag>
+                      </template>
+                    </DataItem>
                   </div>
                 </a-card>
               </a-col>
@@ -342,19 +334,17 @@
                   <div v-if="skillList.length === 0" class="empty-list">
                     暂无技能证书
                   </div>
-                  <div v-else class="data-list skill-list">
-                    <div
+                  <div v-else class="data-list">
+                    <DataItem
                       v-for="(item, index) in skillList"
                       :key="index"
-                      class="data-item"
+                      border-color="#ff7d00"
+                      :title="item.trade"
                     >
-                      <div class="item-header">
-                        <span class="item-title">{{ item.trade }}</span>
-                      </div>
-                      <div class="item-sub">
+                      <template #description>
                         级别：<span class="highlight">{{ item.level }}</span>
-                      </div>
-                    </div>
+                      </template>
+                    </DataItem>
                   </div>
                 </a-card>
               </a-col>
@@ -375,29 +365,19 @@
                   <div v-if="!contactList?.length" class="empty-list">
                     暂无联系人
                   </div>
-                  <div v-else class="data-list contact-list">
-                    <div
+                  <div v-else class="data-list">
+                    <DataItem
                       v-for="(item, index) in contactList"
                       :key="index"
-                      class="data-item"
+                      border-color="#722ed1"
+                      :title="item.contactName"
+                      :extra="item.relationship"
                     >
-                      <a-row
-                        justify="space-between"
-                        align="center"
-                        style="margin-bottom: 8px"
-                      >
-                        <a-col :span="12">
-                          <span class="item-title">{{ item.contactName }}</span>
-                        </a-col>
-                        <a-col :span="12" style="text-align: right">
-                          <span class="item-time">{{ item.relationship }}</span>
-                        </a-col>
-                      </a-row>
-                      <div class="item-sub">
+                      <template #description>
                         <icon-phone style="margin-right: 4px" />
                         <span class="highlight">{{ item.phone }}</span>
-                      </div>
-                    </div>
+                      </template>
+                    </DataItem>
                   </div>
                 </a-card>
               </a-col>
@@ -412,36 +392,28 @@
                   <div v-if="performanceList.length === 0" class="empty-list">
                     暂无绩效记录
                   </div>
-                  <div v-else class="data-list performance-list">
-                    <div
+                  <div v-else class="data-list">
+                    <DataItem
                       v-for="item in performanceList"
                       :key="item.year"
-                      class="data-item"
+                      border-color="#f53f3f"
+                      :title="`${item.year}年度`"
                     >
-                      <a-row
-                        justify="space-between"
-                        align="center"
-                        style="margin-bottom: 8px"
-                      >
-                        <a-col :span="12">
-                          <span class="item-title">{{ item.year }}年度</span>
-                        </a-col>
-                        <a-col :span="12" style="text-align: right">
-                          <a-tag
-                            size="small"
-                            :color="getRatingColor(item.performanceRating)"
-                            >{{ item.performanceRating || '-' }}</a-tag
-                          >
-                        </a-col>
-                      </a-row>
-                      <div class="item-sub">
+                      <template #extra>
+                        <a-tag
+                          size="small"
+                          :color="getRatingColor(item.performanceRating)"
+                          >{{ item.performanceRating || '-' }}</a-tag
+                        >
+                      </template>
+                      <template #description>
                         分数：<span class="highlight">{{
                           item.score || '-'
                         }}</span>
                         <a-divider direction="vertical" />
                         <span>{{ item.isExempt ? '免考' : '参考' }}</span>
-                      </div>
-                    </div>
+                      </template>
+                    </DataItem>
                   </div>
                 </a-card>
               </a-col>
@@ -459,46 +431,28 @@
             <div v-if="rankHistoryList.length === 0" class="empty-list">
               暂无变动记录
             </div>
-            <div v-else class="rank-history-list">
-              <div
-                v-for="(item, index) in rankHistoryList"
-                :key="item.id || index"
-                class="rank-history-item"
-              >
-                <a-row>
-                  <a-col :flex="'24px'">
-                    <div class="rank-history-line">
-                      <div
-                        class="rank-history-dot"
-                        :class="{ 'dot-active': index === 0 }"
-                      ></div>
-                      <div
-                        v-if="index !== rankHistoryList.length - 1"
-                        class="rank-history-connector"
-                      ></div>
+            <div v-else class="rank-history-timeline">
+              <a-timeline>
+                <a-timeline-item
+                  v-for="(item, index) in rankHistoryList"
+                  :key="item.id || index"
+                  :label="formatDate(item.effectiveDate)"
+                  :dot-color="index === 0 ? 'blue' : 'gray'"
+                >
+                  <div class="rank-history-content">
+                    <div class="rank-name">
+                      <span class="label">变更为：</span>
+                      <a-tag color="arcoblue">{{
+                        item.rankName || item.rankId || '-'
+                      }}</a-tag>
                     </div>
-                  </a-col>
-                  <a-col flex="auto">
-                    <div class="rank-history-content">
-                      <div class="rank-history-header">
-                        <div class="rank-history-date">
-                          {{ formatDate(item.effectiveDate) }}
-                        </div>
-                      </div>
-                      <div class="rank-name">
-                        <span class="label">变更为：</span>
-                        <a-tag color="arcoblue">{{
-                          item.rankName || item.rankId || '-'
-                        }}</a-tag>
-                      </div>
-                      <div v-if="item.reason" class="rank-reason">
-                        <span class="label">原因：</span>
-                        <span>{{ item.reason }}</span>
-                      </div>
+                    <div v-if="item.reason" class="rank-reason">
+                      <span class="label">原因：</span>
+                      <span>{{ item.reason }}</span>
                     </div>
-                  </a-col>
-                </a-row>
-              </div>
+                  </div>
+                </a-timeline-item>
+              </a-timeline>
             </div>
           </a-card>
 
@@ -516,45 +470,49 @@
                   <div v-if="mentorList.length === 0" class="empty-list">
                     暂无带教记录
                   </div>
-                  <div v-else class="data-list mentor-list">
-                    <div
+                  <div v-else class="data-list">
+                    <DataItem
                       v-for="item in mentorList"
                       :key="item.id"
-                      class="data-item"
+                      border-color="#722ed1"
                     >
-                      <a-row :gutter="16" style="margin-bottom: 8px">
-                        <a-col :span="12">
-                          <span class="item-label">岗位师傅：</span>
-                          <span class="item-title">{{
-                            item.positionMentorName || '-'
-                          }}</span>
-                        </a-col>
-                        <a-col :span="12">
-                          <span class="item-label">指导师傅：</span>
-                          <span class="item-title">{{
-                            item.guidanceMentorName || '-'
-                          }}</span>
-                        </a-col>
-                      </a-row>
-                      <div class="item-sub" style="margin-bottom: 6px">
-                        <span class="item-label">授课内容：</span>
-                        <a-space wrap size="mini">
-                          <a-tag
-                            v-for="(content, idx) in parseTeachingContents(
-                              item.teachingContents
-                            )"
-                            :key="idx"
-                            size="small"
-                            color="arcoblue"
-                            >{{ content }}</a-tag
-                          >
-                        </a-space>
-                      </div>
-                      <div class="item-time">
-                        {{ formatDate(item.startDate) }} ~
-                        {{ formatDate(item.endDate) }}
-                      </div>
-                    </div>
+                      <template #title>
+                        <a-row :gutter="16">
+                          <a-col :span="12">
+                            <span class="item-label">岗位师傅：</span>
+                            <span class="item-title">{{
+                              item.positionMentorName || '-'
+                            }}</span>
+                          </a-col>
+                          <a-col :span="12">
+                            <span class="item-label">指导师傅：</span>
+                            <span class="item-title">{{
+                              item.guidanceMentorName || '-'
+                            }}</span>
+                          </a-col>
+                        </a-row>
+                      </template>
+                      <template #description>
+                        <div style="margin-bottom: 6px">
+                          <span class="item-label">授课内容：</span>
+                          <a-space wrap size="mini">
+                            <a-tag
+                              v-for="(content, idx) in parseTeachingContents(
+                                item.teachingContents
+                              )"
+                              :key="idx"
+                              size="small"
+                              color="arcoblue"
+                              >{{ content }}</a-tag
+                            >
+                          </a-space>
+                        </div>
+                        <div class="item-time">
+                          {{ formatDate(item.startDate) }} ~
+                          {{ formatDate(item.endDate) }}
+                        </div>
+                      </template>
+                    </DataItem>
                   </div>
                 </a-card>
               </a-col>
@@ -569,27 +527,27 @@
                   <div v-if="teachingCertList.length === 0" class="empty-list">
                     暂无授课认证
                   </div>
-                  <div v-else class="data-list cert-list">
-                    <div
+                  <div v-else class="data-list">
+                    <DataItem
                       v-for="item in teachingCertList"
                       :key="item.id"
-                      class="data-item"
+                      border-color="#00b42a"
+                      :title="item.courseName"
                     >
-                      <div class="item-header">
-                        <span class="item-title">{{ item.courseName }}</span>
+                      <template #extra>
                         <a-tag size="small" color="blue">
                           {{ getCertLevelName(item.certificationLevel) }}
                         </a-tag>
-                      </div>
-                      <div class="item-sub">
+                      </template>
+                      <template #description>
                         授课类型：<span class="highlight">{{
                           item.courseTypeName ||
                           getCourseTypeName(item.courseType)
                         }}</span>
                         <a-divider direction="vertical" />
                         认证日期：{{ formatDate(item.certificationDate) }}
-                      </div>
-                    </div>
+                      </template>
+                    </DataItem>
                   </div>
                 </a-card>
               </a-col>
@@ -613,33 +571,21 @@
                   >
                     暂无授课认定
                   </div>
-                  <div v-else class="data-list record-list">
-                    <div
+                  <div v-else class="data-list">
+                    <DataItem
                       v-for="item in teachingRecordList"
                       :key="item.id"
-                      class="data-item"
+                      border-color="#3491fa"
+                      :title="item.courseName"
+                      :extra="formatDate(item.createTime as string)"
                     >
-                      <a-row
-                        justify="space-between"
-                        align="center"
-                        style="margin-bottom: 8px"
-                      >
-                        <a-col :span="16">
-                          <span class="item-title">{{ item.courseName }}</span>
-                        </a-col>
-                        <a-col :span="8" style="text-align: right">
-                          <span class="item-time">{{
-                            formatDate(item.createTime as string)
-                          }}</span>
-                        </a-col>
-                      </a-row>
-                      <div class="item-sub">
+                      <template #description>
                         授课类型：<span class="highlight">{{
                           item.courseTypeName ||
                           getCourseTypeName(item.courseType)
                         }}</span>
-                      </div>
-                    </div>
+                      </template>
+                    </DataItem>
                   </div>
                 </a-card>
               </a-col>
@@ -654,42 +600,37 @@
                   <div v-if="secondaryEduList.length === 0" class="empty-list">
                     暂无二级教育记录
                   </div>
-                  <div v-else class="data-list edu-list">
-                    <div
+                  <div v-else class="data-list">
+                    <DataItem
                       v-for="item in secondaryEduList"
                       :key="item.id"
-                      class="data-item"
+                      border-color="#ff7d00"
+                      :title="`${item.year}年`"
                     >
-                      <a-row
-                        justify="space-between"
-                        align="center"
-                        style="margin-bottom: 8px"
-                      >
-                        <a-col :span="12">
-                          <a-tag size="small" color="arcoblue">
-                            {{ getEducationTypeName(item.educationType) }}
-                          </a-tag>
-                          <span class="item-title" style="margin-left: 8px"
-                            >{{ item.year }}年</span
-                          >
-                        </a-col>
-                        <a-col :span="12" style="text-align: right">
-                          <a-tag
-                            size="small"
-                            :color="getCompletedStatusColor(item.isCompleted)"
-                          >
-                            {{ getCompletedStatusName(item.isCompleted) }}
-                          </a-tag>
-                        </a-col>
-                      </a-row>
-                      <div v-if="item.isCompleted === 1" class="item-sub">
+                      <template #title>
+                        <a-tag size="small" color="arcoblue">
+                          {{ getEducationTypeName(item.educationType) }}
+                        </a-tag>
+                        <span class="item-title" style="margin-left: 8px"
+                          >{{ item.year }}年</span
+                        >
+                      </template>
+                      <template #extra>
+                        <a-tag
+                          size="small"
+                          :color="getCompletedStatusColor(item.isCompleted)"
+                        >
+                          {{ getCompletedStatusName(item.isCompleted) }}
+                        </a-tag>
+                      </template>
+                      <template v-if="item.isCompleted === 1" #description>
                         完成日期：{{ formatDate(item.completeDate) }}
                         <span v-if="item.score">
                           <a-divider direction="vertical" />
                           成绩：<span class="highlight">{{ item.score }}</span>
                         </span>
-                      </div>
-                    </div>
+                      </template>
+                    </DataItem>
                   </div>
                 </a-card>
               </a-col>
@@ -757,6 +698,7 @@
 
 <script setup lang="ts">
   import { ref, watch } from 'vue';
+  import DataItem from '@/components/data-item/index.vue';
   import type {
     Employee,
     Position,
@@ -849,26 +791,24 @@
       loading.value = true;
 
       // 获取员工基本信息
-      const response = await employeeApi.getEmployeeByUserCode(userCode);
-      if (response.code === 200 && response.data) {
-        employeeData.value = response.data;
+      const { data } = await employeeApi.getEmployeeByUserCode(userCode);
+      employeeData.value = data;
 
-        // 获取扩展数据
-        await Promise.all([
-          fetchPosition(userCode),
-          fetchEducation(userCode),
-          fetchSkill(userCode),
-          fetchContact(userCode),
-          fetchPerformance(userCode),
-          fetchRankHistory(userCode),
-          // 新增数据获取
-          fetchMentors(userCode),
-          fetchTeachingCerts(userCode),
-          fetchTeachingRecords(userCode),
-          fetchSecondaryEducations(userCode),
-          fetchHonors(userCode),
-        ]);
-      }
+      // 获取扩展数据
+      await Promise.all([
+        fetchPosition(userCode),
+        fetchEducation(userCode),
+        fetchSkill(userCode),
+        fetchContact(userCode),
+        fetchPerformance(userCode),
+        fetchRankHistory(userCode),
+        // 新增数据获取
+        fetchMentors(userCode),
+        fetchTeachingCerts(userCode),
+        fetchTeachingRecords(userCode),
+        fetchSecondaryEducations(userCode),
+        fetchHonors(userCode),
+      ]);
     } catch {
       // 获取员工详情失败，静默处理
     } finally {
@@ -1420,85 +1360,6 @@
         flex-direction: column;
         gap: 12px;
 
-        .data-item {
-          padding: 12px 16px;
-          background: #f7f8fa;
-          border-radius: 8px;
-          border-left: 3px solid transparent;
-          transition: all 0.2s;
-
-          &:hover {
-            background: #f2f3f5;
-            transform: translateX(4px);
-          }
-
-          .item-time {
-            font-size: 12px;
-            color: #86909c;
-          }
-
-          .item-title {
-            font-weight: 600;
-            color: #1d2129;
-            font-size: 14px;
-          }
-
-          .item-main {
-            font-size: 14px;
-            color: #4e5969;
-            font-weight: 500;
-          }
-
-          .item-sub {
-            font-size: 13px;
-            color: #86909c;
-
-            .highlight {
-              color: #165dff;
-              font-weight: 600;
-            }
-          }
-        }
-
-        &.education-list .data-item {
-          border-left-color: #00b42a;
-        }
-
-        &.skill-list .data-item {
-          border-left-color: #ff7d00;
-        }
-
-        &.contact-list .data-item {
-          border-left-color: #722ed1;
-        }
-
-        &.performance-list .data-item {
-          border-left-color: #f53f3f;
-        }
-
-        &.mentor-list .data-item {
-          border-left-color: #722ed1;
-        }
-
-        &.cert-list .data-item {
-          border-left-color: #00b42a;
-
-          .item-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-          }
-        }
-
-        &.record-list .data-item {
-          border-left-color: #3491fa;
-        }
-
-        &.edu-list .data-item {
-          border-left-color: #ff7d00;
-        }
-
         .item-label {
           color: #86909c;
           font-size: 12px;
@@ -1527,96 +1388,41 @@
         text-align: center;
       }
 
-      .rank-history-list {
+      .rank-history-timeline {
         padding: 0 20px;
-        position: relative;
 
-        .rank-history-item {
-          position: relative;
-          padding-bottom: 24px;
+        :deep(.arco-timeline) {
+          .arco-timeline-item {
+            padding-bottom: 20px;
 
-          &:last-child {
-            padding-bottom: 0;
-
-            .rank-history-connector {
-              display: none;
+            &:last-child {
+              padding-bottom: 0;
             }
           }
+        }
 
-          .rank-history-line {
-            position: relative;
-            width: 24px;
+        .rank-history-content {
+          .rank-name {
             display: flex;
-            flex-direction: column;
             align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
 
-            .rank-history-dot {
-              width: 12px;
-              height: 12px;
-              border-radius: 50%;
-              background: #d9d9d9;
-              border: 2px solid #fff;
-              box-shadow: 0 0 0 2px #d9d9d9;
-              z-index: 2;
-              transition: all 0.3s;
-
-              &.dot-active {
-                background: #3491fa;
-                box-shadow: 0 0 0 2px #3491fa;
-                width: 14px;
-                height: 14px;
-              }
-            }
-
-            .rank-history-connector {
-              position: absolute;
-              top: 12px;
-              left: 50%;
-              transform: translateX(-50%);
-              width: 2px;
-              height: calc(100% - 12px);
-              background: #e5e6eb;
-              z-index: 1;
+            .label {
+              color: #86909c;
             }
           }
 
-          .rank-history-content {
-            flex: 1;
-            padding-left: 16px;
-            padding-top: 2px;
+          .rank-reason {
+            font-size: 13px;
+            color: #4e5969;
+            margin-top: 4px;
+            line-height: 1.6;
 
-            .rank-history-header {
-              margin-bottom: 8px;
-
-              .rank-history-date {
-                font-size: 13px;
-                color: #86909c;
-                font-weight: 500;
-              }
-            }
-
-            .rank-name {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              margin-bottom: 8px;
-              font-size: 14px;
-
-              .label {
-                color: #86909c;
-              }
-            }
-
-            .rank-reason {
-              font-size: 13px;
-              color: #4e5969;
-              margin-top: 4px;
-              line-height: 1.6;
-
-              .label {
-                color: #86909c;
-                margin-right: 4px;
-              }
+            .label {
+              color: #86909c;
+              margin-right: 4px;
             }
           }
         }

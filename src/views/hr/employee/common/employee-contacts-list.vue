@@ -9,42 +9,58 @@
       </a-button>
     </div>
 
-    <a-table
-      :columns="
-        readonly ? columns.filter((c) => c.slotName !== 'operations') : columns
-      "
-      :data="contactList"
-      :loading="loading"
-      :pagination="false"
-      row-key="id"
-      size="small"
-    >
-      <template #operations="{ record, rowIndex }">
-        <a-space>
-          <a-button
-            type="text"
-            size="small"
-            @click="handleEdit(record, rowIndex)"
+    <a-spin :loading="loading" style="width: 100%">
+      <div v-if="contactList.length === 0" class="empty-container">
+        <a-empty description="暂无紧急联系人" />
+      </div>
+      <div v-else class="data-list">
+        <a-row :gutter="16">
+          <a-col
+            v-for="(item, index) in contactList"
+            :key="item.id || index"
+            :span="colSpan"
           >
-            <template #icon>
-              <icon-edit />
-            </template>
-            编辑
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            @click="handleDelete(record, rowIndex)"
-          >
-            <template #icon>
-              <icon-delete />
-            </template>
-            删除
-          </a-button>
-        </a-space>
-      </template>
-    </a-table>
+            <DataItem border-color="#722ed1" :title="item.contactName">
+              <template #extra>
+                <a-tag v-if="item.relationship" size="small" color="blue">
+                  {{ item.relationship }}
+                </a-tag>
+                <span v-else class="item-time">-</span>
+              </template>
+              <template #description>
+                <icon-phone style="margin-right: 4px" />
+                <span class="highlight">{{ item.phone }}</span>
+              </template>
+              <template v-if="!readonly" #action>
+                <a-space :size="4" direction="vertical">
+                  <a-button
+                    type="text"
+                    size="small"
+                    @click.stop="handleEdit(item, index)"
+                  >
+                    <template #icon>
+                      <icon-edit />
+                    </template>
+                    编辑
+                  </a-button>
+                  <a-button
+                    type="text"
+                    size="small"
+                    status="danger"
+                    @click.stop="handleDelete(item, index)"
+                  >
+                    <template #icon>
+                      <icon-delete />
+                    </template>
+                    删除
+                  </a-button>
+                </a-space>
+              </template>
+            </DataItem>
+          </a-col>
+        </a-row>
+      </div>
+    </a-spin>
 
     <!-- 新增/编辑弹窗 -->
     <a-modal
@@ -81,23 +97,25 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, watch } from 'vue';
+  import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { EmergencyContact } from '@/api/hr/types';
   import employeeRecordApi from '@/api/hr/records';
-  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
+  import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
     userCode: string;
     hideHeader?: boolean;
     readonly?: boolean;
     isNewMode?: boolean;
+    columns?: number; // 列数，默认1列
   }
 
   const props = withDefaults(defineProps<Props>(), {
     hideHeader: false,
     readonly: false,
     isNewMode: false,
+    columns: 1,
   });
 
   // 状态数据
@@ -109,14 +127,6 @@
   const currentIndex = ref<number>(-1);
   const contactList = ref<EmergencyContact[]>([]);
   let tempIdCounter = 0;
-
-  // 表格列定义
-  const columns: TableColumnData[] = [
-    { title: '姓名', dataIndex: 'contactName', width: 120 },
-    { title: '关系', dataIndex: 'relationship', width: 120 },
-    { title: '联系电话', dataIndex: 'phone', width: 150 },
-    { title: '操作', slotName: 'operations', width: 150, fixed: 'right' },
-  ];
 
   // 表单数据
   const formRef = ref();
@@ -282,12 +292,21 @@
     }
   });
 
+  // 计算数量（响应式）
+  const count = computed(() => contactList.value.length);
+
+  // 计算每列的 span 值（Arco 的 col 使用 24 栅格系统）
+  const colSpan = computed(() => {
+    return Math.floor(24 / props.columns);
+  });
+
   defineExpose({
     refresh: getContactList,
     handleAdd: showAddModal,
     saveAllData,
     getLocalData,
     clearData,
+    count,
   });
 </script>
 
@@ -299,6 +318,23 @@
       margin-bottom: 12px;
       display: flex;
       justify-content: flex-end;
+    }
+
+    .empty-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 120px;
+    }
+
+    .data-list {
+      :deep(.arco-row) {
+        margin: 0 -8px;
+      }
+      :deep(.arco-col) {
+        padding: 0 8px;
+        margin-bottom: 16px;
+      }
     }
   }
 </style>

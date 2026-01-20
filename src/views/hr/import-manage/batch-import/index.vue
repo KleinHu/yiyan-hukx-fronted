@@ -29,44 +29,46 @@
     </div>
 
     <!-- 导入类型选择区域 -->
-    <div class="import-categories">
-      <div
-        v-for="category in categories"
-        :key="category"
-        class="category-section"
-      >
-        <div class="category-header">
-          <div
-            class="category-bar"
-            :style="{ backgroundColor: getCategoryColor(category) }"
-          ></div>
-          <span class="category-name">{{ category }}</span>
-          <span class="category-count">{{
-            getTypesByCategory(category).length
-          }}</span>
-        </div>
-        <div class="import-type-grid">
-          <div
-            v-for="config in getTypesByCategory(category)"
-            :key="config.key"
-            class="import-type-card"
-            :class="{ active: selectedType?.key === config.key }"
-            @click="handleSelectType(config)"
-          >
-            <div class="card-icon" :style="getIconStyle(config.key)">
-              <component :is="config.icon" />
-            </div>
-            <div class="card-content">
-              <div class="card-title">{{ config.name }}</div>
-              <div class="card-desc">{{ config.description }}</div>
-            </div>
-            <div class="card-arrow">
-              <icon-right />
+    <a-spin :loading="loading" style="width: 100%">
+      <div class="import-categories">
+        <div
+          v-for="category in categories"
+          :key="category"
+          class="category-section"
+        >
+          <div class="category-header">
+            <div
+              class="category-bar"
+              :style="{ backgroundColor: getCategoryColor(category) }"
+            ></div>
+            <span class="category-name">{{ category }}</span>
+            <span class="category-count">{{
+              getTypesByCategory(category).length
+            }}</span>
+          </div>
+          <div class="import-type-grid">
+            <div
+              v-for="config in getTypesByCategory(category)"
+              :key="config.key"
+              class="import-type-card"
+              :class="{ active: selectedType?.key === config.key }"
+              @click="handleSelectType(config)"
+            >
+              <div class="card-icon" :style="getIconStyle(config.key)">
+                <component :is="getIconComponent(config.icon)" />
+              </div>
+              <div class="card-content">
+                <div class="card-title">{{ config.name }}</div>
+                <div class="card-desc">{{ config.description }}</div>
+              </div>
+              <div class="card-arrow">
+                <icon-right />
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </a-spin>
 
     <!-- 导入弹窗 -->
     <a-modal
@@ -108,6 +110,7 @@
           :required-fields="selectedType.requiredFields"
           :template-url="selectedType.templateUrl"
           :template-name="selectedType.templateName"
+          :value-mappings="selectedType.valueMappings"
           :batch-size="100"
           :max-size="20"
           :enable-template="true"
@@ -137,22 +140,115 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed } from 'vue';
+  import { ref, computed, onMounted } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import {
-    importTypeConfigs,
-    getImportCategories,
-    getImportTypesByCategory,
-    type ImportTypeConfig,
-  } from '@/api/hr/batch-import';
+    IconUser,
+    IconMindMapping,
+    IconBook,
+    IconBookmark,
+    IconBarChart,
+    IconTool,
+    IconTrophy,
+    IconPhone,
+    IconUserAdd,
+    IconEdit,
+    IconFileAudio,
+    IconVideoCamera,
+    IconUserGroup,
+    IconLayers,
+    IconIdcard,
+    IconRight,
+    IconCloudDownload,
+    IconInfoCircle,
+  } from '@arco-design/web-vue/es/icon';
+  import importConfigApi, { type ImportConfigVO } from '@/api/hr/import-config';
+  import type { ImportTypeConfig } from '@/api/hr/batch-import';
   import ExcelImport from '@/components/excel-import/index.vue';
 
+  // 图标映射
+  const iconMap: Record<string, any> = {
+    'icon-user': IconUser,
+    'icon-mind-mapping': IconMindMapping,
+    'icon-book': IconBook,
+    'icon-bookmark': IconBookmark,
+    'icon-bar-chart': IconBarChart,
+    'icon-tool': IconTool,
+    'icon-trophy': IconTrophy,
+    'icon-phone': IconPhone,
+    'icon-user-add': IconUserAdd,
+    'icon-edit': IconEdit,
+    'icon-file-audio': IconFileAudio,
+    'icon-video-camera': IconVideoCamera,
+    'icon-user-group': IconUserGroup,
+    'icon-layers': IconLayers,
+    'icon-idcard': IconIdcard,
+  };
+
   // 导入类型配置
-  const categories = computed(() => getImportCategories());
+  const importTypeConfigs = ref<ImportTypeConfig[]>([]);
+  const loading = ref(false);
+
+  // 将 ImportConfigVO 转换为 ImportTypeConfig
+  const convertToImportTypeConfig = (vo: ImportConfigVO): ImportTypeConfig => {
+    return {
+      key: vo.configKey,
+      name: vo.configName,
+      description: vo.description || '',
+      category: vo.category,
+      icon: vo.icon || 'icon-user',
+      apiUrl: vo.apiUrl,
+      templateUrl: vo.templateUrl,
+      templateName: vo.templateName,
+      presetMappings: vo.presetMappings || {},
+      requiredFields: vo.requiredFields || [],
+      fieldDescriptions: vo.fieldDescriptions || {},
+      valueMappings: vo.valueMappings,
+    };
+  };
+
+  // 获取图标组件
+  const getIconComponent = (iconName: string) => {
+    return iconMap[iconName] || IconUser;
+  };
+
+  // 加载配置数据
+  const loadConfigs = async () => {
+    try {
+      loading.value = true;
+      const response = await importConfigApi.getEnabledConfigs();
+      const configs = response.data || [];
+      importTypeConfigs.value = configs
+        .filter((config) => config.isEnabled)
+        .map(convertToImportTypeConfig);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('加载导入配置失败:', error);
+      Message.error('加载导入配置失败');
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取分类列表
+  const categories = computed(() => {
+    const categorySet = new Set(
+      importTypeConfigs.value.map((config) => config.category)
+    );
+    return Array.from(categorySet);
+  });
 
   // 获取分类下的导入类型
-  const getTypesByCategory = (category: string) =>
-    getImportTypesByCategory(category);
+  const getTypesByCategory = (category: string) => {
+    return importTypeConfigs.value.filter(
+      (config) => config.category === category
+    );
+  };
+
+  // 初始化加载
+  onMounted(() => {
+    loadConfigs();
+  });
 
   // 获取分类颜色
   const getCategoryColor = (category: string): string => {

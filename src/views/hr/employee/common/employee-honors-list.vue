@@ -9,51 +9,70 @@
       </a-button>
     </div>
 
-    <a-table
-      :columns="
-        readonly ? columns.filter((c) => c.slotName !== 'operations') : columns
-      "
-      :data="honorList"
-      :loading="loading"
-      :pagination="false"
-      row-key="id"
-      size="small"
-    >
-      <template #rewardLevel="{ record }">
-        <a-tag
-          v-if="record.rewardLevel"
-          :color="getLevelColor(record.rewardLevel)"
-        >
-          {{ record.rewardLevel }}
-        </a-tag>
-        <span v-else>-</span>
-      </template>
-      <template #operations="{ record, rowIndex }">
-        <a-space>
-          <a-button
-            type="text"
-            size="small"
-            @click="handleEdit(record, rowIndex)"
+    <a-spin :loading="loading" style="width: 100%">
+      <div v-if="honorList.length === 0" class="empty-container">
+        <a-empty description="暂无荣誉记录" />
+      </div>
+      <div v-else class="data-list">
+        <a-row :gutter="16">
+          <a-col
+            v-for="(item, index) in honorList"
+            :key="item.id || index"
+            :span="colSpan"
           >
-            <template #icon>
-              <icon-edit />
-            </template>
-            编辑
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            @click="handleDelete(record, rowIndex)"
-          >
-            <template #icon>
-              <icon-delete />
-            </template>
-            删除
-          </a-button>
-        </a-space>
-      </template>
-    </a-table>
+            <DataItem border-color="#f53f3f">
+              <template #title>
+                <span class="item-title">
+                  <span v-if="item.rewardType">
+                    奖励类型:
+                    <span class="highlight">{{ item.rewardType }}</span>
+                  </span>
+                </span>
+              </template>
+              <template #extra>
+                <a-tag v-if="item.ranking" size="small" color="red">
+                  {{ item.ranking }}
+                </a-tag>
+                <span v-else>-</span>
+              </template>
+              <template #description>
+                <div class="item-sub">
+                  <span v-if="item.rewardName" style="color: #86909c">
+                    奖励名称:
+                    <span class="highlight">{{ item.rewardName }}</span>
+                  </span>
+                </div>
+              </template>
+              <template v-if="!readonly" #action>
+                <a-space :size="4" direction="vertical">
+                  <a-button
+                    type="text"
+                    size="small"
+                    @click.stop="handleEdit(item, index)"
+                  >
+                    <template #icon>
+                      <icon-edit />
+                    </template>
+                    编辑
+                  </a-button>
+                  <a-button
+                    type="text"
+                    size="small"
+                    status="danger"
+                    @click.stop="handleDelete(item, index)"
+                  >
+                    <template #icon>
+                      <icon-delete />
+                    </template>
+                    删除
+                  </a-button>
+                </a-space>
+              </template>
+            </DataItem>
+          </a-col>
+        </a-row>
+      </div>
+    </a-spin>
 
     <!-- 新增/编辑弹窗 -->
     <a-modal
@@ -141,24 +160,26 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, watch } from 'vue';
+  import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { Honor } from '@/api/hr/types';
   import { RewardTypeOptions, RewardLevelOptions } from '@/api/hr/types';
   import employeeRecordApi from '@/api/hr/records';
-  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
+  import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
     userCode: string;
     hideHeader?: boolean;
     readonly?: boolean;
     isNewMode?: boolean;
+    columns?: number; // 列数，默认1列
   }
 
   const props = withDefaults(defineProps<Props>(), {
     hideHeader: false,
     readonly: false,
     isNewMode: false,
+    columns: 1,
   });
 
   // 状态数据
@@ -170,16 +191,6 @@
   const currentIndex = ref<number>(-1);
   const honorList = ref<Honor[]>([]);
   let tempIdCounter = 0;
-
-  // 表格列定义
-  const columns: TableColumnData[] = [
-    { title: '奖励类型', dataIndex: 'rewardType', width: 100 },
-    { title: '奖励名称', dataIndex: 'rewardName', width: 150 },
-    { title: '奖励日期', dataIndex: 'rewardDate', width: 110 },
-    { title: '奖励级别', slotName: 'rewardLevel', width: 100 },
-    { title: '排名', dataIndex: 'ranking', width: 80 },
-    { title: '操作', slotName: 'operations', width: 150, fixed: 'right' },
-  ];
 
   // 表单数据
   const formRef = ref();
@@ -197,15 +208,6 @@
     rewardType: [{ required: true, message: '请选择奖励类型' }],
     rewardName: [{ required: true, message: '请输入奖励名称' }],
     rewardDate: [{ required: true, message: '请选择奖励日期' }],
-  };
-
-  // 根据级别获取颜色
-  const getLevelColor = (level: string): string => {
-    if (level.includes('国家')) return 'red';
-    if (level.includes('省')) return 'orange';
-    if (level.includes('市')) return 'gold';
-    if (level.includes('公司')) return 'blue';
-    return 'gray';
   };
 
   const getHonorList = async () => {
@@ -362,12 +364,21 @@
     }
   });
 
+  // 计算数量（响应式）
+  const count = computed(() => honorList.value.length);
+
+  // 计算每列的 span 值（Arco 的 col 使用 24 栅格系统）
+  const colSpan = computed(() => {
+    return Math.floor(24 / props.columns);
+  });
+
   defineExpose({
     refresh: getHonorList,
     handleAdd: showAddModal,
     saveAllData,
     getLocalData,
     clearData,
+    count,
   });
 </script>
 
@@ -379,6 +390,20 @@
       margin-bottom: 12px;
       display: flex;
       justify-content: flex-end;
+    }
+
+    .empty-container {
+      padding: 40px 0;
+    }
+
+    .data-list {
+      :deep(.arco-row) {
+        margin: 0 -8px;
+      }
+      :deep(.arco-col) {
+        padding: 0 8px;
+        margin-bottom: 16px;
+      }
     }
   }
 </style>

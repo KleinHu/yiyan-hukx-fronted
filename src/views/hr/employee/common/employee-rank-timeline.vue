@@ -111,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, watch } from 'vue';
+  import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { RankHistory, JobRank } from '@/api/hr/types';
   import employeeRecordApi from '@/api/hr/records';
@@ -335,12 +335,16 @@
     }
   });
 
+  // 计算数量（响应式）
+  const count = computed(() => historyList.value.length);
+
   defineExpose({
     refresh: getHistoryList,
     handleAdd: showAddModal,
     saveAllData,
     getLocalData,
     clearData,
+    count,
   });
 </script>
 

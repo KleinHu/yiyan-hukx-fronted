@@ -9,9 +9,9 @@
       <!-- 员工头像和基本信息 -->
       <div class="employee-header">
         <div class="avatar-container">
-          <div v-if="employee.idCardPhotoUrl" class="avatar-with-image">
+          <div v-if="employee.avatarUrl" class="avatar-with-image">
             <a-image
-              :src="employee.idCardPhotoUrl"
+              :src="employee.avatarUrl"
               width="80"
               height="80"
               fit="cover"

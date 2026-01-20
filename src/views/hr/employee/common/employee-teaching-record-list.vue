@@ -9,48 +9,66 @@
       </a-button>
     </div>
 
-    <a-table
-      :columns="
-        readonly ? columns.filter((c) => c.slotName !== 'operations') : columns
-      "
-      :data="recordList"
-      :loading="loading"
-      :pagination="false"
-      row-key="id"
-      size="small"
-    >
-      <template #courseType="{ record }">
-        <a-tag v-if="record.courseType === 1" color="blue">技能</a-tag>
-        <a-tag v-else-if="record.courseType === 2" color="orange">管理</a-tag>
-        <a-tag v-else-if="record.courseType === 3" color="green">技术</a-tag>
-        <span v-else>-</span>
-      </template>
-      <template #operations="{ record, rowIndex }">
-        <a-space>
-          <a-button
-            type="text"
-            size="small"
-            @click="handleEdit(record, rowIndex)"
+    <a-spin :loading="loading" style="width: 100%">
+      <div v-if="recordList.length === 0" class="empty-container">
+        <a-empty description="暂无授课认定" />
+      </div>
+      <div v-else class="data-list">
+        <a-row :gutter="16">
+          <a-col
+            v-for="(item, index) in recordList"
+            :key="item.id || index"
+            :span="colSpan"
           >
-            <template #icon>
-              <icon-edit />
-            </template>
-            编辑
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            @click="handleDelete(record, rowIndex)"
-          >
-            <template #icon>
-              <icon-delete />
-            </template>
-            删除
-          </a-button>
-        </a-space>
-      </template>
-    </a-table>
+            <DataItem border-color="#ff7d00" :title="item.courseName">
+              <template #extra>
+                <a-tag v-if="item.courseType === 1" size="small" color="blue"
+                  >技能</a-tag
+                >
+                <a-tag
+                  v-else-if="item.courseType === 2"
+                  size="small"
+                  color="orange"
+                  >管理</a-tag
+                >
+                <a-tag
+                  v-else-if="item.courseType === 3"
+                  size="small"
+                  color="green"
+                  >技术</a-tag
+                >
+                <span v-else>-</span>
+              </template>
+              <template v-if="!readonly" #action>
+                <a-space :size="4" direction="vertical">
+                  <a-button
+                    type="text"
+                    size="small"
+                    @click.stop="handleEdit(item, index)"
+                  >
+                    <template #icon>
+                      <icon-edit />
+                    </template>
+                    编辑
+                  </a-button>
+                  <a-button
+                    type="text"
+                    size="small"
+                    status="danger"
+                    @click.stop="handleDelete(item, index)"
+                  >
+                    <template #icon>
+                      <icon-delete />
+                    </template>
+                    删除
+                  </a-button>
+                </a-space>
+              </template>
+            </DataItem>
+          </a-col>
+        </a-row>
+      </div>
+    </a-spin>
 
     <!-- 新增/编辑弹窗 -->
     <a-modal
@@ -97,24 +115,26 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, watch } from 'vue';
+  import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { TeachingRecord } from '@/api/hr/types';
   import { CourseTypeOptions } from '@/api/hr/types';
   import employeeRecordApi from '@/api/hr/records';
-  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
+  import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
     userCode: string;
     hideHeader?: boolean;
     readonly?: boolean;
     isNewMode?: boolean;
+    columns?: number; // 列数，默认1列
   }
 
   const props = withDefaults(defineProps<Props>(), {
     hideHeader: false,
     readonly: false,
     isNewMode: false,
+    columns: 1,
   });
 
   // 状态数据
@@ -126,14 +146,6 @@
   const currentIndex = ref<number>(-1);
   const recordList = ref<TeachingRecord[]>([]);
   let tempIdCounter = 0;
-
-  // 表格列定义
-  const columns: TableColumnData[] = [
-    { title: '课程名称', dataIndex: 'courseName', width: 200 },
-    { title: '授课类型', slotName: 'courseType', width: 100 },
-    { title: '备注', dataIndex: 'remark', ellipsis: true },
-    { title: '操作', slotName: 'operations', width: 150, fixed: 'right' },
-  ];
 
   // 表单数据
   const formRef = ref();
@@ -302,12 +314,21 @@
     }
   });
 
+  // 计算数量（响应式）
+  const count = computed(() => recordList.value.length);
+
+  // 计算每列的 span 值（Arco 的 col 使用 24 栅格系统）
+  const colSpan = computed(() => {
+    return Math.floor(24 / props.columns);
+  });
+
   defineExpose({
     refresh: getRecordList,
     handleAdd: showAddModal,
     saveAllData,
     getLocalData,
     clearData,
+    count,
   });
 </script>
 
@@ -319,6 +340,20 @@
       margin-bottom: 12px;
       display: flex;
       justify-content: flex-end;
+    }
+
+    .empty-container {
+      padding: 40px 0;
+    }
+
+    .data-list {
+      :deep(.arco-row) {
+        margin: 0 -8px;
+      }
+      :deep(.arco-col) {
+        padding: 0 8px;
+        margin-bottom: 16px;
+      }
     }
   }
 </style>

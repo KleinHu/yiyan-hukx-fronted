@@ -287,12 +287,26 @@ export function smartMatchFields(
     // 尝试精确匹配
     let fieldName = presetMappings[header] || '';
 
-    // 如果没有精确匹配，尝试模糊匹配（忽略空格、大小写）
+    // 如果没有精确匹配，尝试去掉星号后精确匹配
     if (!fieldName) {
-      const normalizedHeader = header.replace(/\s+/g, '').toLowerCase();
-      const matchedKey = Object.keys(presetMappings).find(
-        (key) => key.replace(/\s+/g, '').toLowerCase() === normalizedHeader
-      );
+      const headerWithoutStar = header.replace(/\*/g, '').trim();
+      fieldName = presetMappings[headerWithoutStar] || '';
+    }
+
+    // 如果还没有匹配，尝试使用includes进行模糊匹配（忽略空格、大小写、星号）
+    if (!fieldName) {
+      const normalizedHeader = header
+        .replace(/\s+/g, '')
+        .replace(/\*/g, '')
+        .toLowerCase();
+      const matchedKey = Object.keys(presetMappings).find((key) => {
+        const normalizedKey = key.replace(/\s+/g, '').toLowerCase();
+        // 使用includes进行包含匹配
+        return (
+          normalizedKey.includes(normalizedHeader) ||
+          normalizedHeader.includes(normalizedKey)
+        );
+      });
       if (matchedKey) {
         fieldName = presetMappings[matchedKey];
       }

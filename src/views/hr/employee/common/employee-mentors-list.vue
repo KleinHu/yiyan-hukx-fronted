@@ -9,56 +9,103 @@
       </a-button>
     </div>
 
-    <a-table
-      :columns="
-        readonly ? columns.filter((c) => c.slotName !== 'operations') : columns
-      "
-      :data="mentorList"
-      :loading="loading"
-      :pagination="false"
-      row-key="id"
-      size="small"
-    >
-      <template #teachingContents="{ record }">
-        <a-space wrap>
-          <a-tag
-            v-for="(item, index) in parseTeachingContents(
-              record.teachingContents
-            )"
-            :key="index"
-            size="small"
-            color="arcoblue"
+    <a-spin :loading="loading" style="width: 100%">
+      <div v-if="mentorList.length === 0" class="empty-container">
+        <a-empty description="暂无带教记录" />
+      </div>
+      <div v-else class="data-list">
+        <a-row :gutter="16">
+          <a-col
+            v-for="(item, index) in mentorList"
+            :key="item.id || index"
+            :span="colSpan"
           >
-            {{ item }}
-          </a-tag>
-        </a-space>
-      </template>
-      <template #operations="{ record, rowIndex }">
-        <a-space>
-          <a-button
-            type="text"
-            size="small"
-            @click="handleEdit(record, rowIndex)"
-          >
-            <template #icon>
-              <icon-edit />
-            </template>
-            编辑
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            @click="handleDelete(record, rowIndex)"
-          >
-            <template #icon>
-              <icon-delete />
-            </template>
-            删除
-          </a-button>
-        </a-space>
-      </template>
-    </a-table>
+            <DataItem border-color="#722ed1">
+              <template #title>
+                <span class="item-title">
+                  <span v-if="item.positionMentorName">
+                    岗位师傅:
+                    <span class="highlight">{{ item.positionMentorName }}</span>
+                  </span>
+                  <span
+                    v-if="item.positionMentorName && item.guidanceMentorName"
+                  >
+                    &nbsp;&nbsp;
+                  </span>
+                  <span v-if="item.guidanceMentorName">
+                    指导师傅:
+                    <span class="highlight">{{ item.guidanceMentorName }}</span>
+                  </span>
+                </span>
+              </template>
+              <template #description>
+                <div class="item-sub">
+                  <div
+                    v-if="
+                      parseTeachingContents(item.teachingContents).length > 0
+                    "
+                    style="margin-bottom: 4px"
+                  >
+                    <span style="color: #86909c">授课内容: </span>
+                    <a-tag
+                      v-for="(content, idx) in parseTeachingContents(
+                        item.teachingContents
+                      )"
+                      :key="idx"
+                      size="small"
+                      color="arcoblue"
+                      style="margin-right: 4px"
+                    >
+                      {{ content }}
+                    </a-tag>
+                  </div>
+                  <span
+                    v-if="item.startDate || item.endDate"
+                    style="color: #86909c"
+                  >
+                    <span v-if="item.startDate && item.endDate">
+                      {{ formatDate(item.startDate) }} ~
+                      {{ formatDate(item.endDate) }}
+                    </span>
+                    <span v-else-if="item.startDate">
+                      {{ formatDate(item.startDate) }} ~
+                    </span>
+                    <span v-else-if="item.endDate">
+                      ~ {{ formatDate(item.endDate) }}
+                    </span>
+                  </span>
+                </div>
+              </template>
+              <template v-if="!readonly" #action>
+                <a-space :size="4" direction="vertical">
+                  <a-button
+                    type="text"
+                    size="small"
+                    @click.stop="handleEdit(item, index)"
+                  >
+                    <template #icon>
+                      <icon-edit />
+                    </template>
+                    编辑
+                  </a-button>
+                  <a-button
+                    type="text"
+                    size="small"
+                    status="danger"
+                    @click.stop="handleDelete(item, index)"
+                  >
+                    <template #icon>
+                      <icon-delete />
+                    </template>
+                    删除
+                  </a-button>
+                </a-space>
+              </template>
+            </DataItem>
+          </a-col>
+        </a-row>
+      </div>
+    </a-spin>
 
     <!-- 新增/编辑弹窗 -->
     <a-modal
@@ -142,17 +189,18 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, watch } from 'vue';
+  import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { EmployeeMentor } from '@/api/hr/types';
   import employeeRecordApi from '@/api/hr/records';
-  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
+  import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
     userCode: string;
     hideHeader?: boolean;
     readonly?: boolean;
     isNewMode?: boolean;
+    columns?: number; // 列数，默认1列
   }
 
   interface FormDataType extends Partial<EmployeeMentor> {
@@ -163,6 +211,7 @@
     hideHeader: false,
     readonly: false,
     isNewMode: false,
+    columns: 1,
   });
 
   // 状态数据
@@ -175,15 +224,19 @@
   const mentorList = ref<EmployeeMentor[]>([]);
   let tempIdCounter = 0;
 
-  // 表格列定义
-  const columns: TableColumnData[] = [
-    { title: '岗位师傅', dataIndex: 'positionMentorName', width: 100 },
-    { title: '指导师傅', dataIndex: 'guidanceMentorName', width: 100 },
-    { title: '授课内容', slotName: 'teachingContents', width: 200 },
-    { title: '开始日期', dataIndex: 'startDate', width: 110 },
-    { title: '结束日期', dataIndex: 'endDate', width: 110 },
-    { title: '操作', slotName: 'operations', width: 150, fixed: 'right' },
-  ];
+  // 格式化日期
+  const formatDate = (dateStr: string | undefined): string => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}/${month}/${day}`;
+    } catch {
+      return dateStr;
+    }
+  };
 
   // 表单数据
   const formRef = ref();
@@ -377,12 +430,21 @@
     }
   });
 
+  // 计算数量（响应式）
+  const count = computed(() => mentorList.value.length);
+
+  // 计算每列的 span 值（Arco 的 col 使用 24 栅格系统）
+  const colSpan = computed(() => {
+    return Math.floor(24 / props.columns);
+  });
+
   defineExpose({
     refresh: getMentorList,
     handleAdd: showAddModal,
     saveAllData,
     getLocalData,
     clearData,
+    count,
   });
 </script>
 
@@ -394,6 +456,20 @@
       margin-bottom: 12px;
       display: flex;
       justify-content: flex-end;
+    }
+
+    .empty-container {
+      padding: 40px 0;
+    }
+
+    .data-list {
+      :deep(.arco-row) {
+        margin: 0 -8px;
+      }
+      :deep(.arco-col) {
+        padding: 0 8px;
+        margin-bottom: 16px;
+      }
     }
   }
 </style>

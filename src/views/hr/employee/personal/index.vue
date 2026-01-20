@@ -232,7 +232,15 @@
                 <!-- 职级变动记录 (只读) -->
                 <a-card :bordered="false" class="form-block">
                   <template #title>
-                    <div class="block-title"><icon-layers /> 职级变动历史</div>
+                    <div class="block-title">
+                      <icon-layers /> 职级变动历史
+                      <a-badge
+                        v-if="rankCount > 0"
+                        :count="rankCount"
+                        :overflow-count="99"
+                        :offset="[8, 0]"
+                      />
+                    </div>
                   </template>
                   <EmployeeRankTimeline
                     v-if="formData.userCode"
@@ -249,7 +257,15 @@
                 <!-- 绩效记录 (只读) -->
                 <a-card :bordered="false" class="form-block">
                   <template #title>
-                    <div class="block-title"><icon-star /> 历年绩效记录</div>
+                    <div class="block-title">
+                      <icon-star /> 历年绩效记录
+                      <a-badge
+                        v-if="performanceCount > 0"
+                        :count="performanceCount"
+                        :overflow-count="99"
+                        :offset="[8, 0]"
+                      />
+                    </div>
                   </template>
                   <EmployeePerformanceList
                     v-if="formData.userCode"
@@ -263,19 +279,36 @@
                 <!-- 列表维护区域 -->
                 <a-card :bordered="false" class="form-block">
                   <template #title>
-                    <div class="block-title"><icon-book /> 教育背景</div>
+                    <div class="block-title">
+                      <icon-book /> 教育背景
+                      <a-badge
+                        v-if="educationCount > 0"
+                        :count="educationCount"
+                        :overflow-count="99"
+                        :offset="[8, 0]"
+                      />
+                    </div>
                   </template>
                   <EmployeeEducationList
                     v-if="formData.userCode"
                     ref="educationListRef"
                     readonly
                     :user-code="formData.userCode"
+                    :columns="2"
                     hide-header
                   />
                 </a-card>
                 <a-card :bordered="false" class="form-block">
                   <template #title>
-                    <div class="block-title"><icon-phone /> 紧急联系人</div>
+                    <div class="block-title">
+                      <icon-phone /> 紧急联系人
+                      <a-badge
+                        v-if="contactCount > 0"
+                        :count="contactCount"
+                        :overflow-count="99"
+                        :offset="[8, 0]"
+                      />
+                    </div>
                   </template>
                   <template #extra>
                     <a-button
@@ -290,18 +323,28 @@
                     v-if="formData.userCode"
                     ref="contactsListRef"
                     :user-code="formData.userCode"
+                    :columns="2"
                     hide-header
                   />
                 </a-card>
                 <a-card :bordered="false" class="form-block">
                   <template #title>
-                    <div class="block-title"><icon-safe /> 技能鉴定与证书</div>
+                    <div class="block-title">
+                      <icon-safe /> 技能鉴定与证书
+                      <a-badge
+                        v-if="skillCount > 0"
+                        :count="skillCount"
+                        :overflow-count="99"
+                        :offset="[8, 0]"
+                      />
+                    </div>
                   </template>
                   <EmployeeSkillsList
                     v-if="formData.userCode"
                     ref="skillsListRef"
                     readonly
                     :user-code="formData.userCode"
+                    :columns="2"
                     hide-header
                   />
                 </a-card>
@@ -309,25 +352,41 @@
                   <template #title>
                     <div class="block-title">
                       <icon-user-group /> 岗位师傅与带教
+                      <a-badge
+                        v-if="mentorCount > 0"
+                        :count="mentorCount"
+                        :overflow-count="99"
+                        :offset="[8, 0]"
+                      />
                     </div>
                   </template>
                   <EmployeeMentorsList
                     v-if="formData.userCode"
                     ref="mentorsListRef"
                     :user-code="formData.userCode"
+                    :columns="2"
                     hide-header
                     readonly
                   />
                 </a-card>
                 <a-card :bordered="false" class="form-block">
                   <template #title>
-                    <div class="block-title"><icon-trophy /> 荣誉奖励</div>
+                    <div class="block-title">
+                      <icon-trophy /> 荣誉奖励
+                      <a-badge
+                        v-if="honorCount > 0"
+                        :count="honorCount"
+                        :overflow-count="99"
+                        :offset="[8, 0]"
+                      />
+                    </div>
                   </template>
                   <EmployeeHonorsList
                     v-if="formData.userCode"
                     ref="honorsListRef"
                     readonly
                     :user-code="formData.userCode"
+                    :columns="2"
                     hide-header
                   />
                 </a-card>
@@ -335,7 +394,15 @@
                 <!-- 授课与培训 (只读展示) -->
                 <a-card :bordered="false" class="form-block">
                   <template #title>
-                    <div class="block-title"><icon-file /> 授课认证与认定</div>
+                    <div class="block-title">
+                      <icon-file /> 授课认证与认定
+                      <a-badge
+                        v-if="teachingCertCount + teachingRecordCount > 0"
+                        :count="teachingCertCount + teachingRecordCount"
+                        :overflow-count="99"
+                        :offset="[8, 0]"
+                      />
+                    </div>
                   </template>
                   <a-tabs type="capsule" size="small">
                     <a-tab-pane key="cert" title="授课认证">
@@ -343,6 +410,7 @@
                         v-if="formData.userCode"
                         ref="teachingCertListRef"
                         :user-code="formData.userCode"
+                        :columns="2"
                         hide-header
                         readonly
                       />
@@ -352,6 +420,7 @@
                         v-if="formData.userCode"
                         ref="teachingRecordListRef"
                         :user-code="formData.userCode"
+                        :columns="2"
                         hide-header
                         readonly
                       />
@@ -363,12 +432,19 @@
                   <template #title>
                     <div class="block-title">
                       <icon-check-circle /> 二级教育完成情况
+                      <a-badge
+                        v-if="secondaryEduCount > 0"
+                        :count="secondaryEduCount"
+                        :overflow-count="99"
+                        :offset="[8, 0]"
+                      />
                     </div>
                   </template>
                   <EmployeeSecondaryEduList
                     v-if="formData.userCode"
                     ref="secondaryEduListRef"
                     :user-code="formData.userCode"
+                    :columns="2"
                     hide-header
                     readonly
                   />
@@ -392,7 +468,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, reactive } from 'vue';
+  import { ref, computed, onMounted, reactive } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import useUserStore from '@/store/modules/security';
   import employeeApi from '@/api/hr/employee';
@@ -426,6 +502,38 @@
   const teachingCertListRef = ref();
   const teachingRecordListRef = ref();
   const secondaryEduListRef = ref();
+
+  // 计算各模块数量
+  const educationCount = computed(() => {
+    return educationListRef.value?.count || 0;
+  });
+  const contactCount = computed(() => {
+    return contactsListRef.value?.count || 0;
+  });
+  const skillCount = computed(() => {
+    return skillsListRef.value?.count || 0;
+  });
+  const mentorCount = computed(() => {
+    return mentorsListRef.value?.count || 0;
+  });
+  const honorCount = computed(() => {
+    return honorsListRef.value?.count || 0;
+  });
+  const teachingCertCount = computed(() => {
+    return teachingCertListRef.value?.count || 0;
+  });
+  const teachingRecordCount = computed(() => {
+    return teachingRecordListRef.value?.count || 0;
+  });
+  const secondaryEduCount = computed(() => {
+    return secondaryEduListRef.value?.count || 0;
+  });
+  const performanceCount = computed(() => {
+    return performanceListRef.value?.count || 0;
+  });
+  const rankCount = computed(() => {
+    return rankTimelineRef.value?.count || 0;
+  });
 
   // 默认使用 E001 作为测试工号，实际项目中会从 userStore 获取当前用户的 userCode
   const DEFAULT_USER_CODE = 'E001';

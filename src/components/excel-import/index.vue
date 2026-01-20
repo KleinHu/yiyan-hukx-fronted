@@ -134,17 +134,17 @@
                     type="button"
                     size="medium"
                   >
-                    <a-radio value="OVERWRITE">
+                    <a-radio :value="ImportStrategy.OVERWRITE">
                       <a-tooltip content="如果工号已存在，则覆盖旧数据">
                         覆盖更新
                       </a-tooltip>
                     </a-radio>
-                    <a-radio value="SKIP">
+                    <a-radio :value="ImportStrategy.SKIP">
                       <a-tooltip content="如果工号已存在，则跳过不导入">
                         跳过重复
                       </a-tooltip>
                     </a-radio>
-                    <a-radio value="ERROR">
+                    <a-radio :value="ImportStrategy.ERROR">
                       <a-tooltip content="如果工号已存在，则标记为错误数据">
                         报错提醒
                       </a-tooltip>
@@ -181,7 +181,7 @@
           <template #icon><icon-left /></template>
           上一步
         </a-button>
-        <a-button @click="handleCancel" class="btn-prev">取消</a-button>
+        <a-button class="btn-prev" @click="handleCancel">取消</a-button>
         <a-button
           v-if="currentStep < 3"
           type="primary"
@@ -211,7 +211,9 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue';
   import { Message } from '@arco-design/web-vue';
-  import axios from 'axios';
+  import request from '@/utils/request/request';
+  import { ImportStrategy } from '@/api/hr/batch-import';
+  import dictTransform from '@/utils/dict-transform';
   import UploadStep from './components/UploadStep.vue';
   import FieldMapping from './components/FieldMapping.vue';
   import DataPreview from './components/DataPreview.vue';
@@ -237,6 +239,7 @@
     customTransform?: (data: any[]) => any[]; // 自定义数据转换函数
     templateUrl?: string; // 模板文件下载地址（不传则不显示下载按钮）
     templateName?: string; // 模板文件名称
+    valueMappings?: Record<string, string>; // 值映射配置 { fieldName: dictType }
   }
 
   interface Emits {
@@ -259,6 +262,7 @@
     customTransform: undefined,
     templateUrl: '',
     templateName: '导入模板.xlsx',
+    valueMappings: () => ({}),
   });
 
   const emit = defineEmits<Emits>();
@@ -277,7 +281,7 @@
   // API 相关
   const currentApiUrl = ref(props.apiUrl);
   const isCustomApi = ref(!props.apiOptions.length);
-  const importStrategy = ref('OVERWRITE');
+  const importStrategy = ref<ImportStrategy>(ImportStrategy.OVERWRITE);
 
   // 上传相关
   const importing = ref(false);
@@ -291,7 +295,7 @@
     totalBatch: 0,
   });
   const errorRecords = ref<ErrorRecord[]>([]);
-  const cancelTokenSource = ref<any>(null);
+  const abortController = ref<AbortController | null>(null);
 
   // 引用
   const uploadStepRef = ref<InstanceType<typeof UploadStep>>();
@@ -373,8 +377,28 @@
       // 用户点击"开始导入"按钮，跳转到进度页面（第4步）
       currentStep.value = 4;
 
-      // 应用自定义转换
+      // 应用值映射转换（label -> value）
       let dataToUpload = validData.value;
+      if (props.valueMappings && Object.keys(props.valueMappings).length > 0) {
+        try {
+          // 加载所需的字典数据
+          const dictTypes = Object.values(props.valueMappings);
+          const dictCache = await dictTransform.loadDicts(dictTypes);
+
+          // 转换数据
+          dataToUpload = dictTransform.transformImportData(
+            dataToUpload,
+            props.valueMappings,
+            dictCache
+          );
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('值映射转换失败:', error);
+          Message.warning('值映射转换失败，将使用原始数据');
+        }
+      }
+
+      // 应用自定义转换
       if (props.customTransform) {
         dataToUpload = props.customTransform(dataToUpload);
       }
@@ -395,8 +419,8 @@
       const chunks = chunkArray(dataToUpload, props.batchSize);
       uploadProgress.value.totalBatch = chunks.length;
 
-      // 创建取消令牌
-      cancelTokenSource.value = axios.CancelToken.source();
+      // 创建取消控制器
+      abortController.value = new AbortController();
 
       // 需要顺序上传，所以使用循环中的 await
       // eslint-disable-next-line no-plusplus
@@ -405,14 +429,14 @@
 
         try {
           // eslint-disable-next-line no-await-in-loop
-          const response: any = await axios.post(
+          const response: any = await request.post(
             currentApiUrl.value,
             {
               data: chunks[i],
               strategy: importStrategy.value,
             },
             {
-              cancelToken: cancelTokenSource.value.token,
+              signal: abortController.value.signal,
             }
           );
 
@@ -471,7 +495,7 @@
             (uploadProgress.value.uploaded + uploadProgress.value.failed) /
             uploadProgress.value.total;
         } catch (error: any) {
-          if (axios.isCancel(error)) {
+          if (error.name === 'AbortError' || error.name === 'CanceledError') {
             uploadProgress.value.status = 'cancelled';
             return;
           }
@@ -526,8 +550,8 @@
 
   // 取消上传
   const handleCancelUpload = () => {
-    if (cancelTokenSource.value) {
-      cancelTokenSource.value.cancel('用户取消上传');
+    if (abortController.value) {
+      abortController.value.abort();
     }
   };
 

@@ -9,50 +9,77 @@
       </a-button>
     </div>
 
-    <a-table
-      :columns="
-        readonly ? columns.filter((c) => c.slotName !== 'operations') : columns
-      "
-      :data="eduList"
-      :loading="loading"
-      :pagination="false"
-      row-key="id"
-      size="small"
-    >
-      <template #educationType="{ record }">
-        {{ getEducationTypeName(record.educationType) }}
-      </template>
-      <template #isCompleted="{ record }">
-        <a-tag v-if="record.isCompleted === 0" color="gray">未完成</a-tag>
-        <a-tag v-else-if="record.isCompleted === 1" color="green">已完成</a-tag>
-        <a-tag v-else-if="record.isCompleted === 2" color="orange">免修</a-tag>
-      </template>
-      <template #operations="{ record, rowIndex }">
-        <a-space>
-          <a-button
-            type="text"
-            size="small"
-            @click="handleEdit(record, rowIndex)"
+    <a-spin :loading="loading" style="width: 100%">
+      <div v-if="eduList.length === 0" class="empty-container">
+        <a-empty description="暂无二级教育" />
+      </div>
+      <div v-else class="data-list">
+        <a-row :gutter="16">
+          <a-col
+            v-for="(item, index) in eduList"
+            :key="item.id || index"
+            :span="colSpan"
           >
-            <template #icon>
-              <icon-edit />
-            </template>
-            编辑
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            @click="handleDelete(record, rowIndex)"
-          >
-            <template #icon>
-              <icon-delete />
-            </template>
-            删除
-          </a-button>
-        </a-space>
-      </template>
-    </a-table>
+            <DataItem border-color="#00b42a">
+              <template #title>
+                <span class="item-title">
+                  <span v-if="getEducationTypeName(item.educationType)">
+                    教育类型:
+                    <span class="highlight">{{
+                      getEducationTypeName(item.educationType)
+                    }}</span>
+                  </span>
+                  <span
+                    v-if="
+                      getEducationTypeName(item.educationType) &&
+                      item.educationName
+                    "
+                  >
+                    &nbsp;&nbsp;
+                  </span>
+                  <span v-if="item.educationName">
+                    教育名称:
+                    <span class="highlight">{{ item.educationName }}</span>
+                  </span>
+                </span>
+              </template>
+              <template #description>
+                <div class="item-sub">
+                  <span v-if="item.year" style="color: #86909c">
+                    年度: <span class="highlight">{{ item.year }}</span>
+                  </span>
+                </div>
+              </template>
+              <template v-if="!readonly" #action>
+                <a-space :size="4" direction="vertical">
+                  <a-button
+                    type="text"
+                    size="small"
+                    @click.stop="handleEdit(item, index)"
+                  >
+                    <template #icon>
+                      <icon-edit />
+                    </template>
+                    编辑
+                  </a-button>
+                  <a-button
+                    type="text"
+                    size="small"
+                    status="danger"
+                    @click.stop="handleDelete(item, index)"
+                  >
+                    <template #icon>
+                      <icon-delete />
+                    </template>
+                    删除
+                  </a-button>
+                </a-space>
+              </template>
+            </DataItem>
+          </a-col>
+        </a-row>
+      </div>
+    </a-spin>
 
     <!-- 新增/编辑弹窗 -->
     <a-modal
@@ -150,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, watch } from 'vue';
+  import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { SecondaryEducation } from '@/api/hr/types';
   import {
@@ -158,19 +185,21 @@
     SecondaryEducationStatusOptions,
   } from '@/api/hr/types';
   import employeeRecordApi from '@/api/hr/records';
-  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
+  import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
     userCode: string;
     hideHeader?: boolean;
     readonly?: boolean;
     isNewMode?: boolean;
+    columns?: number; // 列数，默认1列
   }
 
   const props = withDefaults(defineProps<Props>(), {
     hideHeader: false,
     readonly: false,
     isNewMode: false,
+    columns: 1,
   });
 
   // 状态数据
@@ -182,17 +211,6 @@
   const currentIndex = ref<number>(-1);
   const eduList = ref<SecondaryEducation[]>([]);
   let tempIdCounter = 0;
-
-  // 表格列定义
-  const columns: TableColumnData[] = [
-    { title: '教育类型', slotName: 'educationType', width: 100 },
-    { title: '教育名称', dataIndex: 'educationName', width: 120 },
-    { title: '年度', dataIndex: 'year', width: 80 },
-    { title: '完成状态', slotName: 'isCompleted', width: 100 },
-    { title: '完成日期', dataIndex: 'completeDate', width: 110 },
-    { title: '考核成绩', dataIndex: 'score', width: 80 },
-    { title: '操作', slotName: 'operations', width: 150, fixed: 'right' },
-  ];
 
   // 表单数据
   const formRef = ref();
@@ -380,12 +398,21 @@
     }
   });
 
+  // 计算数量（响应式）
+  const count = computed(() => eduList.value.length);
+
+  // 计算每列的 span 值（Arco 的 col 使用 24 栅格系统）
+  const colSpan = computed(() => {
+    return Math.floor(24 / props.columns);
+  });
+
   defineExpose({
     refresh: getEduList,
     handleAdd: showAddModal,
     saveAllData,
     getLocalData,
     clearData,
+    count,
   });
 </script>
 
@@ -397,6 +424,20 @@
       margin-bottom: 12px;
       display: flex;
       justify-content: flex-end;
+    }
+
+    .empty-container {
+      padding: 40px 0;
+    }
+
+    .data-list {
+      :deep(.arco-row) {
+        margin: 0 -8px;
+      }
+      :deep(.arco-col) {
+        padding: 0 8px;
+        margin-bottom: 16px;
+      }
     }
   }
 </style>

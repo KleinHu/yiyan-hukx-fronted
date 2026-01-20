@@ -1,5 +1,5 @@
 <template>
-  <div class="performance-list">
+  <div class="performance-timeline">
     <div v-if="!hideHeader && !readonly" class="list-header">
       <a-button type="primary" size="mini" @click="showAddModal">
         <template #icon>
@@ -9,54 +9,70 @@
       </a-button>
     </div>
 
-    <a-table
-      :columns="
-        readonly ? columns.filter((c) => c.slotName !== 'operations') : columns
-      "
-      :data="performanceList"
-      :loading="loading"
-      :pagination="false"
-      row-key="id"
-      size="small"
-    >
-      <template #performanceRating="{ record }">
-        <a-tag size="small" :color="getRatingColor(record.performanceRating)">
-          {{ record.performanceRating || '-' }}
-        </a-tag>
-      </template>
-
-      <template #isExempt="{ record }">
-        <a-tag size="small" :color="record.isExempt ? 'orange' : 'green'">
-          {{ record.isExempt ? '不考核' : '参加考核' }}
-        </a-tag>
-      </template>
-
-      <template #operations="{ record, rowIndex }">
-        <a-space>
-          <a-button
-            type="text"
-            size="small"
-            @click="handleEdit(record, rowIndex)"
-          >
-            <template #icon>
-              <icon-edit />
-            </template>
-            编辑
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            @click="handleDelete(record, rowIndex)"
-          >
-            <template #icon>
-              <icon-delete />
-            </template>
-            删除
-          </a-button>
-        </a-space>
-      </template>
-    </a-table>
+    <div v-if="loading" class="loading-container">
+      <a-spin :size="32" />
+    </div>
+    <div v-else-if="sortedPerformanceList.length === 0" class="empty-container">
+      <a-empty description="暂无绩效记录" />
+    </div>
+    <div v-else class="timeline-wrapper">
+      <a-timeline>
+        <a-timeline-item
+          v-for="(item, index) in sortedPerformanceList"
+          :key="item.year || index"
+          :label="`${item.year}年`"
+          :dot-color="index === 0 ? 'blue' : 'gray'"
+        >
+          <div class="performance-item-content">
+            <div class="performance-main">
+              <div class="performance-info">
+                <span class="label">绩效等级：</span>
+                <a-tag
+                  size="small"
+                  :color="getRatingColor(item.performanceRating)"
+                >
+                  {{ item.performanceRating || '-' }}
+                </a-tag>
+                <div v-if="item.isExempt !== undefined" class="exempt-info">
+                  <a-tag
+                    size="small"
+                    :color="item.isExempt ? 'orange' : 'green'"
+                  >
+                    {{ item.isExempt ? '不考核' : '参加考核' }}
+                  </a-tag>
+                </div>
+              </div>
+              <div class="performance-ops" v-if="!readonly">
+                <a-button
+                  type="text"
+                  size="mini"
+                  @click="handleEdit(item, index)"
+                >
+                  <template #icon><icon-edit /></template>
+                </a-button>
+                <a-button
+                  type="text"
+                  size="mini"
+                  status="danger"
+                  @click="handleDelete(item, index)"
+                >
+                  <template #icon><icon-delete /></template>
+                </a-button>
+              </div>
+            </div>
+            <div class="performance-description">
+              <span
+                v-if="item.score !== null && item.score !== undefined"
+                class="score-info"
+              >
+                <span class="label">绩效分：</span>
+                <span class="score-value">{{ item.score }}</span>
+              </span>
+            </div>
+          </div>
+        </a-timeline-item>
+      </a-timeline>
+    </div>
 
     <!-- 新增/编辑弹窗 -->
     <a-modal
@@ -116,11 +132,10 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, watch } from 'vue';
+  import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { Performance } from '@/api/hr/types';
   import employeeRecordApi from '@/api/hr/records';
-  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
 
   interface Props {
     userCode: string;
@@ -144,24 +159,14 @@
   const currentIndex = ref<number>(-1);
   let tempIdCounter = 0;
 
-  // 表格列定义
-  const columns: TableColumnData[] = [
-    { title: '年度', dataIndex: 'year', width: 100 },
-    {
-      title: '绩效等级',
-      dataIndex: 'performanceRating',
-      slotName: 'performanceRating',
-      width: 120,
-    },
-    { title: '绩效分数', dataIndex: 'score', width: 120 },
-    {
-      title: '考核状态',
-      dataIndex: 'isExempt',
-      slotName: 'isExempt',
-      width: 120,
-    },
-    { title: '操作', slotName: 'operations', width: 100, fixed: 'right' },
-  ];
+  // 按年度倒序排列（最新的在前）
+  const sortedPerformanceList = computed(() => {
+    return [...performanceList.value].sort((a, b) => {
+      const yearA = a.year || 0;
+      const yearB = b.year || 0;
+      return yearB - yearA; // 降序排列
+    });
+  });
 
   // 表单数据
   const formRef = ref();
@@ -215,14 +220,23 @@
     modalVisible.value = true;
   };
 
-  const handleEdit = (record: Performance, rowIndex: number) => {
+  const handleEdit = (record: Performance, index: number) => {
     isEdit.value = true;
-    currentIndex.value = rowIndex;
+    // 找到原始列表中的索引
+    const originalIndex = performanceList.value.findIndex(
+      (item) => item.year === record.year
+    );
+    currentIndex.value = originalIndex >= 0 ? originalIndex : index;
     Object.assign(formData, record);
     modalVisible.value = true;
   };
 
-  const handleDelete = (record: Performance, rowIndex: number) => {
+  const handleDelete = (record: Performance, index: number) => {
+    // 找到原始列表中的索引
+    const originalIndex = performanceList.value.findIndex(
+      (item) => item.year === record.year
+    );
+    const rowIndex = originalIndex >= 0 ? originalIndex : index;
     Modal.confirm({
       title: '确认删除',
       content: '确定要删除这条绩效记录吗？',
@@ -326,23 +340,93 @@
     }
   });
 
+  // 计算数量（响应式）
+  const count = computed(() => performanceList.value.length);
+
   defineExpose({
     refresh: getPerformanceList,
     handleAdd: showAddModal,
     saveAllData,
     getLocalData,
     clearData,
+    count,
   });
 </script>
 
 <style scoped lang="less">
-  .performance-list {
+  .performance-timeline {
     padding: 0;
 
     .list-header {
-      margin-bottom: 12px;
+      margin-bottom: 16px;
       display: flex;
       justify-content: flex-end;
+    }
+
+    .loading-container,
+    .empty-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 120px;
+    }
+
+    .timeline-wrapper {
+      padding: 0 12px;
+    }
+
+    .performance-item-content {
+      .performance-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 4px;
+      }
+
+      .performance-info {
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+
+        .exempt-info {
+          margin-top: 0;
+        }
+      }
+
+      .performance-description {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+
+        .score-info {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+
+          .score-value {
+            font-weight: 600;
+            color: var(--color-text-1);
+          }
+        }
+      }
+
+      .performance-ops {
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+
+      &:hover .performance-ops {
+        opacity: 1;
+      }
+
+      .label {
+        color: var(--color-text-3);
+        margin-right: 4px;
+      }
     }
   }
 </style>

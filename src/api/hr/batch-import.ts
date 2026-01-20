@@ -10,6 +10,43 @@ import type { ApiResponse } from '@/api/hr/types';
 export const TEMPLATE_BASE_URL = '/api/hr/templates';
 
 /**
+ * 数据导入冲突处理策略
+ */
+// eslint-disable-next-line no-shadow
+export enum ImportStrategy {
+  /**
+   * 覆盖更新：如果数据已存在，则覆盖旧数据
+   */
+  OVERWRITE = 'OVERWRITE',
+
+  /**
+   * 跳过重复：如果数据已存在，则跳过不导入
+   */
+  SKIP = 'SKIP',
+
+  /**
+   * 报错提醒：如果数据已存在，则标记为错误数据
+   */
+  ERROR = 'ERROR',
+}
+
+/**
+ * 批量导入请求
+ */
+export interface BatchImportRequest {
+  /**
+   * 导入数据列表
+   */
+  data: Record<string, any>[];
+
+  /**
+   * 数据冲突处理策略
+   * 默认为覆盖更新
+   */
+  strategy?: ImportStrategy;
+}
+
+/**
  * 批量导入结果
  */
 export interface BatchImportResult {
@@ -44,6 +81,12 @@ export interface ImportTypeConfig {
   presetMappings: Record<string, string>; // 预设字段映射
   requiredFields: string[]; // 必填字段
   fieldDescriptions: Record<string, string>; // 字段说明
+  /**
+   * 值映射配置
+   * key: 数据库字段名（如 departmentId）
+   * value: 字典类型标识（如 department）
+   */
+  valueMappings?: Record<string, string>; // 值映射配置
 }
 
 /**

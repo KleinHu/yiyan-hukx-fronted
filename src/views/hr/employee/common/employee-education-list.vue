@@ -9,46 +9,74 @@
       </a-button>
     </div>
 
-    <a-table
-      :columns="
-        readonly ? columns.filter((c) => c.slotName !== 'operations') : columns
-      "
-      :data="educationList"
-      :loading="loading"
-      :pagination="false"
-      row-key="id"
-      size="small"
-    >
-      <template #degree="{ record }">
-        <a-tag size="small">{{ getDegreeName(record.degree) }}</a-tag>
-      </template>
-
-      <template #operations="{ record, rowIndex }">
-        <a-space>
-          <a-button
-            type="text"
-            size="small"
-            @click="handleEdit(record, rowIndex)"
+    <a-spin :loading="loading" style="width: 100%">
+      <div v-if="educationList.length === 0" class="empty-container">
+        <a-empty description="暂无教育经历" />
+      </div>
+      <div v-else class="data-list">
+        <a-row :gutter="16">
+          <a-col
+            v-for="(item, index) in educationList"
+            :key="item.id || index"
+            :span="colSpan"
           >
-            <template #icon>
-              <icon-edit />
-            </template>
-            编辑
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            @click="handleDelete(record, rowIndex)"
-          >
-            <template #icon>
-              <icon-delete />
-            </template>
-            删除
-          </a-button>
-        </a-space>
-      </template>
-    </a-table>
+            <DataItem border-color="#165dff" :title="item.major || '-'">
+              <template #extra>
+                <a-tag v-if="item.degree" size="small" color="arcoblue">
+                  {{ getDegreeName(item.degree) }}
+                </a-tag>
+                <span v-else>-</span>
+              </template>
+              <template #description>
+                <div class="item-sub">
+                  <span v-if="item.majorCategory" style="color: #86909c">
+                    专业大类:
+                    <span class="highlight">{{ item.majorCategory }}</span>
+                  </span>
+                  <span
+                    v-if="item.startYear || item.endYear"
+                    style="margin-top: 4px; display: block; color: #86909c"
+                  >
+                    <span v-if="item.startYear && item.endYear">
+                      {{ item.startYear }} ~ {{ item.endYear }}
+                    </span>
+                    <span v-else-if="item.startYear">
+                      {{ item.startYear }} ~
+                    </span>
+                    <span v-else-if="item.endYear"> ~ {{ item.endYear }} </span>
+                  </span>
+                </div>
+              </template>
+              <template v-if="!readonly" #action>
+                <a-space :size="4" direction="vertical">
+                  <a-button
+                    type="text"
+                    size="small"
+                    @click.stop="handleEdit(item, index)"
+                  >
+                    <template #icon>
+                      <icon-edit />
+                    </template>
+                    编辑
+                  </a-button>
+                  <a-button
+                    type="text"
+                    size="small"
+                    status="danger"
+                    @click.stop="handleDelete(item, index)"
+                  >
+                    <template #icon>
+                      <icon-delete />
+                    </template>
+                    删除
+                  </a-button>
+                </a-space>
+              </template>
+            </DataItem>
+          </a-col>
+        </a-row>
+      </div>
+    </a-spin>
 
     <!-- 新增/编辑弹窗 -->
     <a-modal
@@ -110,35 +138,27 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, watch } from 'vue';
+  import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { Education } from '@/api/hr/types';
-  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
   import { DegreeOptions } from '@/api/hr/types';
   import employeeRecordApi from '@/api/hr/records';
+  import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
     userCode: string;
     hideHeader?: boolean;
     readonly?: boolean;
     isNewMode?: boolean; // 新建模式：数据暂存本地，不立即调用API
+    columns?: number; // 列数，默认1列
   }
 
   const props = withDefaults(defineProps<Props>(), {
     hideHeader: false,
     readonly: false,
     isNewMode: false,
+    columns: 1,
   });
-
-  // 表格列定义
-  const columns: TableColumnData[] = [
-    { title: '学历', dataIndex: 'degree', slotName: 'degree', width: 100 },
-    { title: '在校专业', dataIndex: 'major', width: 150 },
-    { title: '专业大类', dataIndex: 'majorCategory', width: 120 },
-    { title: '入学年份', dataIndex: 'startYear', width: 100 },
-    { title: '毕业年份', dataIndex: 'endYear', width: 100 },
-    { title: '操作', slotName: 'operations', width: 150, fixed: 'right' },
-  ];
 
   // 响应式数据
   const loading = ref(false);
@@ -343,12 +363,21 @@
     }
   });
 
+  // 计算数量（响应式）
+  const count = computed(() => educationList.value.length);
+
+  // 计算每列的 span 值（Arco 的 col 使用 24 栅格系统）
+  const colSpan = computed(() => {
+    return Math.floor(24 / props.columns);
+  });
+
   defineExpose({
     refresh: getEducationList,
     handleAdd: showAddModal,
     saveAllData,
     getLocalData,
     clearData,
+    count,
   });
 </script>
 
@@ -360,6 +389,20 @@
       margin-bottom: 12px;
       display: flex;
       justify-content: flex-end;
+    }
+
+    .empty-container {
+      padding: 40px 0;
+    }
+
+    .data-list {
+      :deep(.arco-row) {
+        margin: 0 -8px;
+      }
+      :deep(.arco-col) {
+        padding: 0 8px;
+        margin-bottom: 16px;
+      }
     }
   }
 </style>
