@@ -82,12 +82,23 @@
 
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-form-item label="部门负责人" field="managerName">
-              <a-input
-                v-model="formData.managerName"
-                placeholder="请输入负责人姓名"
+            <a-form-item label="部门负责人" field="managerId">
+              <a-select
+                v-model="formData.managerId"
+                placeholder="请选择负责人"
                 :disabled="mode === 'view'"
-              />
+                allow-clear
+                :loading="employeeLoading"
+                @change="handleManagerChange"
+              >
+                <a-option
+                  v-for="employee in employeeList"
+                  :key="employee.userCode"
+                  :value="employee.userCode"
+                >
+                  {{ employee.userName }} ({{ employee.userCode }})
+                </a-option>
+              </a-select>
             </a-form-item>
           </a-col>
           <a-col :span="12">
@@ -118,11 +129,13 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue';
+  import { ref, reactive, computed, watch, nextTick } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import type { FormInstance } from '@arco-design/web-vue';
   import departmentApi from '@/api/hr/department';
-  import type { Department, DepartmentTreeNode } from '@/api/hr/types';
+  import useEmployeeList from '@/hooks/hr/employee';
+  import useDepartmentTree from '@/hooks/hr/department';
+  import type { Department } from '@/api/hr/types';
 
   interface Props {
     visible: boolean;
@@ -142,10 +155,27 @@
   // 响应式数据
   const formRef = ref<FormInstance>();
   const submitLoading = ref(false);
-  const departmentTreeData = ref<DepartmentTreeNode[]>([]);
+
+  // 使用 Hooks
+  const {
+    employeeList,
+    loading: employeeLoading,
+    fetchEmployeeList,
+    getEmployeeByCode,
+  } = useEmployeeList({
+    autoLoad: false, // 不自动加载，在弹窗打开时加载
+    filterStatus: 2, // 只获取正式员工
+  });
+
+  const { departmentTreeData, fetchDepartmentTree } = useDepartmentTree({
+    autoLoad: false, // 不自动加载，在弹窗打开时加载
+    includeRoot: true, // 包含根节点
+  });
 
   // 表单数据
-  const formData = reactive<Partial<Department>>({
+  const formData = reactive<
+    Partial<Department> & { managerId?: string | number }
+  >({
     deptCode: '',
     deptName: '',
     parentId: '',
@@ -247,7 +277,8 @@
    */
   watch(modalVisible, (visible) => {
     if (visible) {
-      getDepartmentTree();
+      fetchDepartmentTree();
+      fetchEmployeeList();
       nextTick(() => {
         formRef.value?.clearValidate();
       });
@@ -255,29 +286,19 @@
   });
 
   /**
-   * 获取部门树数据
+   * 处理负责人选择变化
    */
-  const getDepartmentTree = async () => {
-    try {
-      const response = await departmentApi.getDepartmentTree();
-      if (response.code === 200) {
-        // 添加根节点选项
-        departmentTreeData.value = [
-          {
-            deptId: '0',
-            deptCode: 'ROOT',
-            deptName: '顶级部门',
-            deptLevel: 0,
-            sortOrder: 0,
-            isActive: true,
-            parentId: '-1',
-            status: 1,
-            children: response.data || [],
-          } as DepartmentTreeNode,
-        ];
+  const handleManagerChange = (userCode: string | undefined) => {
+    if (userCode) {
+      const employee = getEmployeeByCode(userCode);
+      if (employee) {
+        // managerId 存储 userCode（字符串），但类型定义可能是 number，这里使用字符串
+        formData.managerId = userCode as any;
+        formData.managerName = employee.userName;
       }
-    } catch (error) {
-      console.error('获取部门树失败:', error);
+    } else {
+      formData.managerId = undefined;
+      formData.managerName = '';
     }
   };
 
@@ -310,22 +331,14 @@
 
       submitLoading.value = true;
 
-      let response;
       if (props.mode === 'add') {
-        response = await departmentApi.createDepartment(formData);
+        await departmentApi.createDepartment(formData);
       } else {
-        response = await departmentApi.updateDepartment(
-          formData.deptId!,
-          formData
-        );
+        await departmentApi.updateDepartment(formData.deptId!, formData);
       }
 
-      if (response.code === 200) {
-        Message.success(props.mode === 'add' ? '新增成功' : '更新成功');
-        emit('success');
-      } else {
-        Message.error(response.message || '操作失败');
-      }
+      Message.success(props.mode === 'add' ? '新增成功' : '更新成功');
+      emit('success');
     } catch (error) {
       console.error('提交失败:', error);
       Message.error('操作失败');
@@ -340,13 +353,6 @@
   const handleCancel = () => {
     modalVisible.value = false;
   };
-
-  // 组件挂载时获取部门树
-  onMounted(() => {
-    if (props.visible) {
-      getDepartmentTree();
-    }
-  });
 </script>
 
 <script lang="ts">

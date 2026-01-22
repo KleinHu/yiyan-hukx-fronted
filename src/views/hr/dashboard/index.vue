@@ -14,8 +14,8 @@
     <a-spin :loading="loading" style="width: 100%">
       <SummaryCards :data="dashboardData" />
       <HonorStats :data="dashboardData" />
-      <DataBreakdown :data="dashboardData" />
       <ChartSection :data="dashboardData" />
+      <DepartmentEducation :data="dashboardData" />
     </a-spin>
   </div>
 </template>
@@ -25,8 +25,8 @@
   import dashboardApi, { DashboardData } from '@/api/hr/dashboard';
   import SummaryCards from './components/summary-cards.vue';
   import HonorStats from './components/honor-stats.vue';
-  import DataBreakdown from './components/data-breakdown.vue';
   import ChartSection from './components/chart-section.vue';
+  import DepartmentEducation from './components/department-education.vue';
 
   const loading = ref(false);
 
@@ -37,6 +37,8 @@
       newHires3Years: 42,
       newHiresGrowth: 12.5,
       averageAge: 32,
+      totalHonors: 0,
+      newHonors3Years: 0,
     },
     ageStructure: [
       { label: '25岁以下', value: 28 },
@@ -51,12 +53,7 @@
       { label: '本科', value: 85, total: 156 },
       { label: '大专', value: 24, total: 156 },
     ],
-    technicalStaffAnalysis: [
-      { label: '高级工程师', value: 18 },
-      { label: '中级工程师', value: 35 },
-      { label: '初级工程师', value: 42 },
-      { label: '技术专家', value: 12 },
-    ],
+    technicalStaffAnalysis: [],
     rankDistribution: [
       { label: '高级', value: 28 },
       { label: '中级', value: 65 },
@@ -69,12 +66,7 @@
       { label: '销售类', value: 18 },
       { label: '其他', value: 15 },
     ],
-    rankLevelDistribution: [
-      { label: '高级', value: 28 },
-      { label: '中级', value: 65 },
-      { label: '初级', value: 48 },
-      { label: '其他', value: 15 },
-    ],
+    rankLevelDistribution: [],
     honorStats: [
       { label: '国家级', value: 2 },
       { label: '省级', value: 5 },
@@ -93,6 +85,7 @@
       { label: '技术开发类', value: 85 },
       { label: '安全合规类', value: 120 },
     ],
+    departmentEducationStats: [],
   };
 
   const dashboardData = ref<DashboardData>(defaultDashboardData);
@@ -108,18 +101,12 @@
             ...defaultDashboardData.overview,
             ...res.data.overview,
           },
-          ageStructure:
-            res.data.ageStructure?.length > 0
-              ? res.data.ageStructure
-              : defaultDashboardData.ageStructure,
-          educationDistribution:
-            res.data.educationDistribution?.length > 0
-              ? res.data.educationDistribution
-              : defaultDashboardData.educationDistribution,
-          technicalStaffAnalysis:
-            res.data.technicalStaffAnalysis?.length > 0
-              ? res.data.technicalStaffAnalysis
-              : defaultDashboardData.technicalStaffAnalysis,
+          // 年龄结构（用于图表展示）
+          ageStructure: res.data.ageStructure || [],
+          // 学历分布（用于图表展示）
+          educationDistribution: res.data.educationDistribution || [],
+          // 技术人员分析（已删除，不再使用）
+          technicalStaffAnalysis: [],
           rankDistribution:
             res.data.rankDistribution?.length > 0
               ? res.data.rankDistribution
@@ -128,10 +115,7 @@
             res.data.jobCategoryDistribution?.length > 0
               ? res.data.jobCategoryDistribution
               : defaultDashboardData.jobCategoryDistribution,
-          rankLevelDistribution:
-            res.data.rankLevelDistribution?.length > 0
-              ? res.data.rankLevelDistribution
-              : defaultDashboardData.rankLevelDistribution,
+          rankLevelDistribution: res.data.rankLevelDistribution || [],
           honorStats:
             res.data.honorStats?.length > 0
               ? res.data.honorStats
@@ -148,6 +132,10 @@
             res.data.trainingStats?.length > 0
               ? res.data.trainingStats
               : defaultDashboardData.trainingStats,
+          departmentEducationStats:
+            res.data.departmentEducationStats?.length > 0
+              ? res.data.departmentEducationStats
+              : res.data.departmentEducationStats || [], // 使用后端返回的数据，即使为空数组
         };
       } else {
         // API返回异常时使用默认数据

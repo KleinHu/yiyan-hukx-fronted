@@ -33,8 +33,8 @@
             >
               <a-option
                 v-for="dept in departmentList"
-                :key="dept.id"
-                :value="dept.id"
+                :key="dept.deptId"
+                :value="dept.deptId"
               >
                 {{ dept.deptName }}
               </a-option>
@@ -124,15 +124,14 @@
 
 <script setup lang="ts">
   import { ref, reactive, onMounted } from 'vue';
-  import { Message } from '@arco-design/web-vue';
   import {
     IconSearch,
     IconRefresh,
     IconApps,
   } from '@arco-design/web-vue/es/icon';
-  import employeeApi from '@/api/hr/employee';
-  import departmentApi from '@/api/hr/department';
-  import type { Employee, Department } from '@/api/hr/types';
+  import useEmployeeList from '@/hooks/hr/employee';
+  import useDepartmentTree from '@/hooks/hr/department';
+  import type { Employee } from '@/api/hr/types';
   import EmployeeCard from '../common/employee-card.vue';
   import EmployeeDetailDrawer from '../common/employee-detail-drawer.vue';
 
@@ -152,19 +151,16 @@
     workStatus?: number;
   }
 
-  /**
-   * 分页数据结构
-   */
-  interface Pagination {
-    current: number;
-    pageSize: number;
-    total: number;
-  }
+  // 使用 Hooks
+  const { employeeList, loading, pagination, fetchEmployeeList } =
+    useEmployeeList({
+      autoLoad: false, // 手动控制加载
+    });
 
-  // 响应式数据
-  const loading = ref(false);
-  const employeeList = ref<Employee[]>([]);
-  const departmentList = ref<Department[]>([]);
+  const { departmentList, fetchDepartmentList } = useDepartmentTree({
+    autoLoad: false, // 手动控制加载
+  });
+
   const drawerVisible = ref(false);
   const selectedUserCode = ref<string>();
 
@@ -182,59 +178,37 @@
     workStatus: undefined,
   });
 
-  // 分页信息
-  const pagination = reactive<Pagination>({
-    current: 1,
-    pageSize: 20,
-    total: 0,
-  });
-
   /**
    * 获取员工列表
    */
   const getEmployeeList = async () => {
-    try {
-      loading.value = true;
-      const params = {
-        pageNum: pagination.current,
-        pageSize: pagination.pageSize,
-        userName: searchForm.userName,
-        userCode: searchForm.userCode,
-        departmentId: searchForm.departmentId,
-        rankId: searchForm.rankId,
-        jobTitle: searchForm.jobTitle || searchForm.position, // 兼容旧字段
-        status: searchForm.status || searchForm.workStatus, // 兼容旧字段
-        mobile: searchForm.mobile,
-      };
+    const params = {
+      pageNum: pagination.value.current,
+      pageSize: pagination.value.pageSize,
+      userName: searchForm.userName,
+      userCode: searchForm.userCode,
+      departmentId: searchForm.departmentId,
+      rankId: searchForm.rankId,
+      jobTitle: searchForm.jobTitle || searchForm.position, // 兼容旧字段
+      status: searchForm.status || searchForm.workStatus, // 兼容旧字段
+      mobile: searchForm.mobile,
+    };
 
-      const { data } = await employeeApi.getEmployeePage(params);
-      employeeList.value = data.list || [];
-      pagination.total = data.total || 0;
-    } catch (error) {
-      console.error('获取员工列表失败:', error);
-      Message.error('获取员工列表失败');
-    } finally {
-      loading.value = false;
-    }
+    await fetchEmployeeList(params, true); // 使用分页
   };
 
   /**
    * 获取部门列表
    */
   const getDepartmentList = async () => {
-    try {
-      const { data } = await departmentApi.getDepartmentList();
-      departmentList.value = data || [];
-    } catch (error) {
-      console.error('获取部门列表失败:', error);
-    }
+    await fetchDepartmentList();
   };
 
   /**
    * 处理搜索
    */
   const handleSearch = () => {
-    pagination.current = 1;
+    pagination.value.current = 1;
     getEmployeeList();
   };
 
@@ -251,7 +225,7 @@
     searchForm.mobile = '';
     searchForm.position = '';
     searchForm.workStatus = undefined;
-    pagination.current = 1;
+    pagination.value.current = 1;
     getEmployeeList();
   };
 
@@ -259,7 +233,7 @@
    * 处理分页变化
    */
   const handlePageChange = (page: number) => {
-    pagination.current = page;
+    pagination.value.current = page;
     getEmployeeList();
   };
 
@@ -267,8 +241,8 @@
    * 处理页大小变化
    */
   const handlePageSizeChange = (pageSize: number) => {
-    pagination.pageSize = pageSize;
-    pagination.current = 1;
+    pagination.value.pageSize = pageSize;
+    pagination.value.current = 1;
     getEmployeeList();
   };
 

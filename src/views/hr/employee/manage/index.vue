@@ -62,15 +62,14 @@
 <script setup lang="ts">
   import { ref, reactive, onMounted } from 'vue';
   import { Message } from '@arco-design/web-vue';
-  import employeeApi from '@/api/hr/employee';
-  import departmentApi from '@/api/hr/department';
+  import useEmployeeList from '@/hooks/hr/employee';
+  import useDepartmentTree from '@/hooks/hr/department';
   import jobRankApi from '@/api/hr/job-rank';
   import professionalTitleApi from '@/api/hr/professional-title';
   import employeeRecordApi from '@/api/hr/records';
   import fileApi from '@/api/hr/file';
   import type {
     Employee,
-    Department,
     JobRank,
     Position,
     ProfessionalTitle,
@@ -80,13 +79,30 @@
   import EmployeeList from './components/employee-list.vue';
   import EmployeeForm from './components/employee-form.vue';
 
+  // 使用 Hooks
+  const {
+    employeeList,
+    loading,
+    pagination,
+    fetchEmployeeList,
+    createEmployee,
+    updateEmployee,
+  } = useEmployeeList({
+    autoLoad: false, // 手动控制加载
+  });
+
+  const {
+    departmentTreeData,
+    departmentList,
+    fetchDepartmentTree,
+    fetchDepartmentList,
+  } = useDepartmentTree({
+    autoLoad: false, // 手动控制加载
+  });
+
   // 状态
-  const loading = ref(false);
   const detailLoading = ref(false);
   const submitLoading = ref(false);
-  const employeeList = ref<Employee[]>([]);
-  const departmentList = ref<Department[]>([]);
-  const departmentTreeData = ref<any[]>([]);
   const jobRankList = ref<JobRank[]>([]);
   const professionalTitleList = ref<ProfessionalTitle[]>([]);
   const currentRecord = ref<Employee | null>(null);
@@ -112,12 +128,6 @@
     ],
   };
 
-  const pagination = reactive({
-    current: 1,
-    pageSize: 20,
-    total: 0,
-  });
-
   // 档案主表数据
   const formData = reactive<Partial<Employee>>({});
 
@@ -136,10 +146,12 @@
    */
   const handlePaginationUpdate = (value: {
     current: number;
+    pageSize: number;
     total: number;
   }) => {
-    pagination.current = value.current;
-    pagination.total = value.total;
+    pagination.value.current = value.current;
+    pagination.value.pageSize = value.pageSize;
+    pagination.value.total = value.total;
   };
 
   /**
@@ -160,21 +172,17 @@
    * 加载名录数据
    */
   const fetchData = async () => {
-    try {
-      loading.value = true;
-      const searchKey = employeeListRef.value?.searchKey || '';
-      const filterDept = employeeListRef.value?.filterDept;
-      const { data } = await employeeApi.getEmployeePage({
-        pageNum: pagination.current,
-        pageSize: pagination.pageSize,
+    const searchKey = employeeListRef.value?.searchKey || '';
+    const filterDept = employeeListRef.value?.filterDept;
+    await fetchEmployeeList(
+      {
+        pageNum: pagination.value.current,
+        pageSize: pagination.value.pageSize,
         userName: searchKey,
         departmentId: filterDept,
-      });
-      employeeList.value = data.list || [];
-      pagination.total = data.total;
-    } finally {
-      loading.value = false;
-    }
+      },
+      true // 使用分页
+    );
   };
 
   /**
@@ -309,13 +317,13 @@
       submitLoading.value = true;
       // 1. 保存主表数据
       if (isAdding.value) {
-        await employeeApi.createEmployee(formData);
+        await createEmployee(formData);
       } else {
         if (!formData.userCode) {
           Message.error('工号不能为空');
           return;
         }
-        await employeeApi.updateEmployee(formData.userCode, formData);
+        await updateEmployee(formData.userCode, formData);
       }
 
       const { userCode } = formData;
@@ -357,24 +365,17 @@
     }
   };
 
-  onMounted(() => {
-    fetchData();
+  onMounted(async () => {
+    await fetchData();
     // 获取部门树形结构
-    departmentApi.getDepartmentTree().then((res) => {
-      departmentTreeData.value = res.data || [];
-      // 同时保留扁平列表用于筛选（如果需要）
-      departmentApi.getDepartmentList().then((listRes) => {
-        departmentList.value = listRes.data || [];
-      });
-    });
+    await fetchDepartmentTree();
+    await fetchDepartmentList();
     // 获取职级列表
-    jobRankApi.getJobRankList().then((res) => {
-      jobRankList.value = res.data || [];
-    });
+    const rankRes = await jobRankApi.getJobRankList();
+    jobRankList.value = rankRes.data || [];
     // 获取专业职称列表
-    professionalTitleApi.getProfessionalTitleList().then((res) => {
-      professionalTitleList.value = res.data || [];
-    });
+    const titleRes = await professionalTitleApi.getProfessionalTitleList();
+    professionalTitleList.value = titleRes.data || [];
   });
 </script>
 

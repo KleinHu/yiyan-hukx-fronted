@@ -1,9 +1,5 @@
 <template>
-  <div>
-    <a-typography-title :heading="6" style="margin: 24px 0 16px">
-      <icon-trophy style="margin-right: 8px; color: #86909c" />
-      荣誉资质分布
-    </a-typography-title>
+  <div style="margin: 24px 0 16px">
     <a-row :gutter="20" style="margin-bottom: 20px">
       <a-col :span="24">
         <a-card

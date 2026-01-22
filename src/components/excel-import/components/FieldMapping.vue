@@ -168,6 +168,7 @@
   interface Props {
     excelData: ExcelData;
     presetMappings?: Record<string, string>;
+    requiredFields?: string[]; // 必填字段列表
   }
 
   interface Emits {
@@ -177,6 +178,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     presetMappings: () => ({}),
+    requiredFields: () => [],
   });
 
   const emit = defineEmits<Emits>();
@@ -381,12 +383,20 @@
 
     const matched = smartMatchFields(
       props.excelData.headers,
-      props.presetMappings
+      props.presetMappings,
+      props.requiredFields
     );
     mappings.value = matched;
 
     const matchedCount = matched.filter((m) => m.fieldName).length;
-    Message.success(`智能匹配成功，已匹配 ${matchedCount} 个字段`);
+    const matchedRequiredCount = matched.filter((m) => m.required).length;
+    Message.success(
+      `智能匹配成功，已匹配 ${matchedCount} 个字段${
+        matchedRequiredCount > 0
+          ? `，其中 ${matchedRequiredCount} 个必填字段已自动设置为包含`
+          : ''
+      }`
+    );
   };
 
   // 清空配置

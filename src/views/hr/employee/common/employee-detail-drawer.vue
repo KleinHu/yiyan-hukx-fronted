@@ -713,7 +713,7 @@
     SecondaryEducation,
     Honor,
   } from '@/api/hr/types';
-  import employeeApi from '@/api/hr/employee';
+  import useEmployeeList from '@/hooks/hr/employee';
   import employeeRecordApi from '@/api/hr/records';
 
   const props = defineProps<{
@@ -725,6 +725,11 @@
   const emit = defineEmits<{
     (e: 'update:visible', value: boolean): void;
   }>();
+
+  const { fetchEmployeeDetail: fetchEmployeeDetailFromHook, loading } =
+    useEmployeeList({
+      autoLoad: false,
+    });
 
   const drawerVisible = ref(props.visible);
   const employeeData = ref<Employee | null>(null);
@@ -740,7 +745,6 @@
   const teachingRecordList = ref<TeachingRecord[]>([]);
   const secondaryEduList = ref<SecondaryEducation[]>([]);
   const honorList = ref<Honor[]>([]);
-  const loading = ref(false);
 
   watch(
     () => props.visible,
@@ -788,13 +792,11 @@
     }
 
     try {
-      loading.value = true;
+      // 获取员工基本信息（hook 会自动管理 loading 状态）
+      const employee = await fetchEmployeeDetailFromHook(userCode);
+      employeeData.value = employee;
 
-      // 获取员工基本信息
-      const { data } = await employeeApi.getEmployeeByUserCode(userCode);
-      employeeData.value = data;
-
-      // 获取扩展数据
+      // 获取扩展数据（这些 API 调用不依赖 loading 状态，可以异步加载）
       await Promise.all([
         fetchPosition(userCode),
         fetchEducation(userCode),
@@ -811,8 +813,6 @@
       ]);
     } catch {
       // 获取员工详情失败，静默处理
-    } finally {
-      loading.value = false;
     }
   };
 

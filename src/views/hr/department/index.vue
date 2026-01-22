@@ -79,8 +79,8 @@
       <a-card :bordered="false">
         <a-table
           :data="departmentList"
-          :loading="loading"
           v-model:expanded-keys="expandedKeys"
+          :loading="loading"
           :pagination="false"
           row-key="deptId"
         >
@@ -170,9 +170,9 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted } from 'vue';
+  import { ref, reactive, onMounted, computed } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
-  import departmentApi from '@/api/hr/department';
+  import useDepartmentTree from '@/hooks/hr/department';
   import type { Department, DepartmentTreeNode } from '@/api/hr/types';
   import DepartmentModal from './components/department-modal.vue';
 
@@ -184,9 +184,14 @@
     isActive?: number;
   }
 
+  // 使用 Hook
+  const { departmentTreeData, loading, fetchDepartmentTree, deleteDepartment } =
+    useDepartmentTree({
+      autoLoad: false, // 手动控制加载
+    });
+
   // 响应式数据
-  const loading = ref(false);
-  const departmentList = ref<DepartmentTreeNode[]>([]);
+  const departmentList = computed(() => departmentTreeData.value);
   const expandedKeys = ref<string[]>([]);
   const modalVisible = ref(false);
   const modalMode = ref<'view' | 'add' | 'edit'>('view');
@@ -203,20 +208,11 @@
    * 获取部门树数据
    */
   const getDepartmentTree = async () => {
-    try {
-      loading.value = true;
-      const { data } = await departmentApi.getDepartmentTree();
-      departmentList.value = data || [];
-      // 默认展开第一层
-      expandedKeys.value = data
-        .map((dept) => dept.deptId)
-        .filter((id): id is string => !!id);
-    } catch (error) {
-      console.error('获取部门数据失败:', error);
-      Message.error('获取部门数据失败');
-    } finally {
-      loading.value = false;
-    }
+    await fetchDepartmentTree();
+    // 默认展开第一层
+    expandedKeys.value = departmentTreeData.value
+      .map((dept) => dept.deptId)
+      .filter((id): id is string => !!id);
   };
 
   /**
@@ -253,7 +249,7 @@
       });
       return keys;
     };
-    expandedKeys.value = getAllKeys(departmentList.value);
+    expandedKeys.value = getAllKeys(departmentTreeData.value);
   };
 
   /**
@@ -305,12 +301,9 @@
       title: '确认删除',
       content: `确定要删除部门 ${department.deptName} 吗？此操作不可恢复。`,
       onOk: async () => {
-        try {
-          await departmentApi.deleteDepartment(departmentId);
-          Message.success('删除成功');
+        const success = await deleteDepartment(departmentId);
+        if (success) {
           getDepartmentTree();
-        } catch (error) {
-          console.error('删除部门失败:', error);
         }
       },
     });

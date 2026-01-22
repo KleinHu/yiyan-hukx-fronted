@@ -68,10 +68,16 @@
       <div class="panel-footer">
         <a-pagination
           :current="pagination.current"
+          :page-size="pagination.pageSize"
           size="mini"
           :total="pagination.total"
-          simple
+          :base-size="3"
+          :buffer-size="1"
+          :show-total="true"
+          :show-page-size="false"
+          :page-size-options="[10, 20, 50, 100]"
           @change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
         />
       </div>
     </div>
@@ -90,6 +96,7 @@
     currentRecord?: Employee | null;
     pagination: {
       current: number;
+      pageSize: number;
       total: number;
     };
   }
@@ -103,7 +110,10 @@
     (e: 'add'): void;
     (e: 'select', employee: Employee): void;
     (e: 'search'): void;
-    (e: 'update:pagination', value: { current: number; total: number }): void;
+    (
+      e: 'update:pagination',
+      value: { current: number; pageSize: number; total: number }
+    ): void;
   }>();
 
   const searchKey = ref('');
@@ -143,6 +153,16 @@
   const handlePageChange = (page: number) => {
     emit('update:pagination', {
       current: page,
+      pageSize: props.pagination.pageSize,
+      total: props.pagination.total,
+    });
+    emit('search');
+  };
+
+  const handlePageSizeChange = (pageSize: number) => {
+    emit('update:pagination', {
+      current: 1, // 切换每页数量时重置到第一页
+      pageSize,
       total: props.pagination.total,
     });
     emit('search');

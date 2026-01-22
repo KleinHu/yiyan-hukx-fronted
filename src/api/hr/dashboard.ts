@@ -6,6 +6,8 @@ export interface DashboardOverview {
   newHires3Years: number;
   newHiresGrowth: number;
   averageAge: number;
+  totalHonors: number; // 荣誉总数
+  newHonors3Years: number; // 近3年新增荣誉
 }
 
 export interface ChartData {
@@ -33,6 +35,21 @@ export interface RankingStat {
   unit?: string;
 }
 
+export interface DepartmentEducationStat {
+  deptId: string;
+  deptName: string;
+  parentId?: string; // 父部门ID
+  deptLevel?: number; // 部门层级
+  totalEmployees: number;
+  doctorCount: number; // 博士
+  masterCount: number; // 硕士
+  bachelorCount: number; // 本科
+  collegeCount: number; // 大专
+  highSchoolCount: number; // 高中
+  noEducationCount: number; // 无学历信息
+  children?: DepartmentEducationStat[]; // 子部门列表
+}
+
 export interface DashboardData {
   overview: DashboardOverview;
   ageStructure: ChartData[];
@@ -50,6 +67,7 @@ export interface DashboardData {
   };
   teachingLeaderboard: RankingStat[]; // 授课达人榜
   trainingStats: ChartData[];
+  departmentEducationStats: DepartmentEducationStat[]; // 按科室的学历梯队
 }
 
 const dashboardApi = {

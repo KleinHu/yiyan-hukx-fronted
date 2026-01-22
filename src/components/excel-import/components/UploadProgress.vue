@@ -38,6 +38,10 @@
           <div class="label">已成功</div>
           <div class="value">{{ progress.uploaded }}</div>
         </div>
+        <div v-if="(progress.skipped || 0) > 0" class="stat-card-mini skipped">
+          <div class="label">已跳过</div>
+          <div class="value">{{ progress.skipped || 0 }}</div>
+        </div>
         <div v-if="progress.failed > 0" class="stat-card-mini failed">
           <div class="label">失败</div>
           <div class="value">{{ progress.failed }}</div>
@@ -419,6 +423,9 @@
           }
           &.failed .value {
             color: #f53f3f;
+          }
+          &.skipped .value {
+            color: #ff7d00;
           }
         }
       }

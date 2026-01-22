@@ -41,6 +41,19 @@
       </a-card>
     </a-col>
   </a-row>
+  <!-- 职级等级分布 - 单独一行 -->
+  <a-row :gutter="20" style="margin-top: 20px">
+    <a-col :span="24">
+      <a-card
+        title="职级等级分布"
+        :bordered="false"
+        hoverable
+        class="dashboard-card"
+      >
+        <Chart :options="rankChartOption" height="400px" />
+      </a-card>
+    </a-col>
+  </a-row>
 </template>
 
 <script setup lang="ts">
@@ -168,10 +181,25 @@
   // 学历分布饼图 (Donut)
   const { chartOption: eduChartOption } = useChartOption(() => {
     const { educationDistribution } = props.data;
-    const data = educationDistribution.map((i) => ({
-      name: i.label.split(' ')[0] || i.label,
-      value: i.total || i.value,
-    }));
+    // 定义颜色映射：无学历使用灰色
+    const colorMap: Record<string, string> = {
+      博士: '#8E82F2',
+      硕士: '#16B2EB',
+      本科: '#F7B500',
+      大专: '#4DCCB4',
+      无学历: '#86909c', // 灰色
+    };
+
+    const data = educationDistribution.map((i) => {
+      const name = i.label.split(' ')[0] || i.label;
+      return {
+        name,
+        value: i.value, // 使用实际人数，不是总员工数
+        itemStyle: {
+          color: colorMap[name] || '#8E82F2', // 如果找不到映射，使用默认颜色
+        },
+      };
+    });
     const total = data.reduce((sum, item) => sum + item.value, 0);
 
     return {
@@ -241,7 +269,6 @@
             show: false,
           },
           data,
-          color: ['#8E82F2', '#16B2EB', '#F7B500', '#4DCCB4'],
           animationType: 'scale',
           animationEasing: 'elasticOut',
           animationDelay: (idx: number) => idx * 100,
@@ -340,6 +367,19 @@
   // 职称分布水平柱状图
   const { chartOption: levelChartOption } = useChartOption(() => {
     const { rankLevelDistribution } = props.data;
+    if (!rankLevelDistribution || rankLevelDistribution.length === 0) {
+      return {
+        title: {
+          text: '暂无数据',
+          left: 'center',
+          top: 'middle',
+          textStyle: {
+            color: '#86909c',
+            fontSize: 14,
+          },
+        },
+      };
+    }
     const reversedData = [...rankLevelDistribution].reverse();
     const colors = ['#4DCCB4', '#16B2EB', '#8E82F2'];
 
@@ -462,6 +502,137 @@
             offset: [8, 0],
           },
           animationDelay: (idx: number) => idx * 100,
+        },
+      ],
+    };
+  });
+
+  // 职级等级分布柱状图
+  const { chartOption: rankChartOption } = useChartOption(() => {
+    const { rankDistribution } = props.data;
+    if (!rankDistribution || rankDistribution.length === 0) {
+      return {
+        title: {
+          text: '暂无数据',
+          left: 'center',
+          top: 'middle',
+          textStyle: {
+            color: '#86909c',
+            fontSize: 14,
+          },
+        },
+      };
+    }
+
+    const rankNames = rankDistribution.map((i) => i.label);
+    const rankValues = rankDistribution.map((i) => i.value);
+
+    return {
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '5%',
+        top: '8%',
+        containLabel: true,
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow',
+        },
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        borderColor: 'transparent',
+        textStyle: {
+          color: '#fff',
+          fontSize: 12,
+        },
+        padding: [8, 12],
+        formatter: (params: any) => {
+          const param = params[0];
+          return `${param.name}<br/>${param.seriesName}: ${param.value}人`;
+        },
+      },
+      xAxis: {
+        type: 'category',
+        data: rankNames,
+        axisLine: {
+          lineStyle: {
+            color: '#F2F3F5',
+          },
+        },
+        axisTick: {
+          show: false,
+        },
+        axisLabel: {
+          fontSize: 12,
+          color: '#4e5969',
+          rotate: 30, // 旋转角度
+          interval: 0,
+          margin: 15,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        name: '人数',
+        nameTextStyle: {
+          color: '#86909c',
+          padding: [0, 0, 0, -30],
+        },
+        splitLine: {
+          lineStyle: {
+            type: 'dashed',
+            color: '#E5E6EB',
+          },
+        },
+        axisLine: {
+          show: false,
+        },
+      },
+      series: [
+        {
+          name: '人数',
+          data: rankValues,
+          type: 'bar',
+          barWidth: 28,
+          itemStyle: {
+            borderRadius: [6, 6, 0, 0],
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                {
+                  offset: 0,
+                  color: '#8E82F2',
+                },
+                {
+                  offset: 1,
+                  color: '#A396FF',
+                },
+              ],
+            },
+            shadowBlur: 8,
+            shadowColor: 'rgba(142, 130, 242, 0.3)',
+            shadowOffsetY: 2,
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 15,
+              shadowColor: 'rgba(142, 130, 242, 0.5)',
+              shadowOffsetY: 4,
+            },
+          },
+          label: {
+            show: true,
+            position: 'top',
+            fontSize: 12,
+            fontWeight: 600,
+            color: '#1d2129',
+            formatter: '{c}',
+          },
+          animationDelay: (idx: number) => idx * 50,
         },
       ],
     };

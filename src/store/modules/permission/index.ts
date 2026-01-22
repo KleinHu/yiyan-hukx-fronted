@@ -135,10 +135,25 @@ const usePermissionStore = defineStore('menu', {
 
     // 在主菜单选择一个模块跳转
     switchModules(module: string, router: Router) {
-      // 移除现有的动态路由
+      // 递归移除路由的辅助函数
+      const removeRouteRecursively = (routes: any[]) => {
+        routes.forEach((route) => {
+          if (route.name && router.hasRoute(route.name)) {
+            router.removeRoute(route.name);
+          }
+          if (route.children && route.children.length > 0) {
+            removeRouteRecursively(route.children);
+          }
+        });
+      };
+
+      // 移除现有的动态路由（包括嵌套路由）
       this.modules.forEach((e) => {
         if (e.name && router.hasRoute(e.name)) {
           router.removeRoute(e.name);
+        }
+        if (e.children && e.children.length > 0) {
+          removeRouteRecursively(e.children);
         }
       });
 
@@ -148,11 +163,27 @@ const usePermissionStore = defineStore('menu', {
       )[0];
       this.currentModule = currentModule;
       this.routers = [...this.baseRouters];
+
       if (currentModule?.children) {
-        currentModule.children.forEach((elem: any) => {
-          elem = { ...elem, path: `/${elem.path}`, component: Layout };
-          router.addRoute(elem);
-        });
+        // 递归添加路由的辅助函数
+        const addRouteRecursively = (routes: any[], parentPath = '') => {
+          routes.forEach((elem: any) => {
+            const routeConfig = {
+              ...elem,
+              path: parentPath ? `${parentPath}/${elem.path}` : `/${elem.path}`,
+              component: elem.component || Layout,
+            };
+            router.addRoute(routeConfig);
+
+            // 如果有子路由，递归添加（Vue Router 的 addRoute 会自动处理 children，
+            // 但我们需要递归处理以确保所有层级的路径都正确计算）
+            if (elem.children && elem.children.length > 0) {
+              addRouteRecursively(elem.children, routeConfig.path);
+            }
+          });
+        };
+
+        addRouteRecursively(currentModule.children);
         this.routers = [...this.baseRouters, ...currentModule.children];
       }
     },

@@ -36,6 +36,7 @@ export interface UploadProgress {
   total: number; // 总条数
   uploaded: number; // 已上传条数
   failed: number; // 失败条数
+  skipped?: number; // 跳过条数
   percentage: number; // 上传百分比
   status: UploadStatus;
   currentBatch?: number; // 当前批次

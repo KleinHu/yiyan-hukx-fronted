@@ -278,10 +278,14 @@ export function deleteMappingTemplate(templateId: string): void {
 /**
  * 智能匹配字段
  * 根据预设映射和相似度匹配字段
+ * @param excelHeaders Excel 表头列表
+ * @param presetMappings 预设字段映射
+ * @param requiredFields 必填字段列表（可选）
  */
 export function smartMatchFields(
   excelHeaders: string[],
-  presetMappings: Record<string, string>
+  presetMappings: Record<string, string>,
+  requiredFields: string[] = []
 ): FieldMapping[] {
   return excelHeaders.map((header, index) => {
     // 尝试精确匹配
@@ -312,11 +316,14 @@ export function smartMatchFields(
       }
     }
 
+    // 如果字段在必填字段列表中，则设置为必填且包含
+    const isRequired = fieldName && requiredFields.includes(fieldName);
+
     return {
       excelColumn: header,
       fieldName,
-      required: false,
-      enabled: false, // 默认不包含
+      required: isRequired,
+      enabled: isRequired, // 必填字段自动设置为包含
       index,
       dataType: fieldName && isPossibleDateField(fieldName) ? 'date' : 'string',
     };

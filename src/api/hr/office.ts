@@ -96,6 +96,15 @@ const officeApi = {
   ): Promise<ApiResponse<boolean>> {
     return request.put(`/api/hr/office/floor-config?floor=${floor}`, config);
   },
+
+  /**
+   * 删除楼层配置（管理员功能）
+   * @param id 楼层ID
+   * @returns 删除结果
+   */
+  deleteFloorConfig(id: number): Promise<ApiResponse<boolean>> {
+    return request.delete(`/api/hr/office/floor-config/${id}`);
+  },
 };
 
 export default officeApi;

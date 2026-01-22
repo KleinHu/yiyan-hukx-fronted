@@ -471,7 +471,7 @@
   import { ref, computed, onMounted, reactive } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import useUserStore from '@/store/modules/security';
-  import employeeApi from '@/api/hr/employee';
+  import useEmployeeList from '@/hooks/hr/employee';
   import fileApi from '@/api/hr/file';
   import { Employee } from '@/api/hr/types';
 
@@ -489,7 +489,9 @@
   import EmployeeSecondaryEduList from '../common/employee-secondary-edu-list.vue';
 
   const userStore = useUserStore();
-  const loading = ref(false);
+  const { loading, fetchEmployeeDetail, updateEmployee } = useEmployeeList({
+    autoLoad: false,
+  });
   const submitLoading = ref(false);
   const photoEditorVisible = ref(false);
   const contactsListRef = ref();
@@ -562,31 +564,16 @@
 
   const fetchData = async () => {
     try {
-      loading.value = true;
       // 优先从 store 获取 userCode，如果没有则使用默认值
       const currentUserCode = userStore.userCode || DEFAULT_USER_CODE;
 
       // 通过 userCode 获取人员基本信息
-      const { data } = await employeeApi.getEmployeePage({
-        userCode: currentUserCode,
-        pageNum: 1,
-        pageSize: 1,
-      });
-      if (data.list.length > 0) {
-        Object.assign(formData, data.list[0]);
-      } else {
-        // 如果按工号查不到，尝试直接通过userCode获取
-        const userCodeRes = await employeeApi.getEmployeeByUserCode(
-          currentUserCode
-        );
-        if (userCodeRes.data) {
-          Object.assign(formData, userCodeRes.data);
-        }
+      const employee = await fetchEmployeeDetail(currentUserCode);
+      if (employee) {
+        Object.assign(formData, employee);
       }
     } catch (err) {
       Message.error('获取个人信息失败');
-    } finally {
-      loading.value = false;
     }
   };
 
@@ -595,8 +582,10 @@
 
     try {
       submitLoading.value = true;
-      await employeeApi.updateEmployee(formData.userCode, formData);
-      Message.success('个人基本资料更新成功');
+      const success = await updateEmployee(formData.userCode, formData);
+      if (success) {
+        Message.success('个人基本资料更新成功');
+      }
     } catch (err) {
       // Message.error('保存失败');
     } finally {

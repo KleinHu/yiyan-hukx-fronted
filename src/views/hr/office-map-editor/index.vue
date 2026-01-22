@@ -121,7 +121,7 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
-  import { useRouter } from 'vue-router';
+  import { useRouter, useRoute } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
   import officeApi from '@/api/hr/office';
   import type { FloorConfig, OfficeRoom } from '@/api/hr/types';
@@ -131,6 +131,7 @@
   import RoomConfigModal from './components/room-config-modal.vue';
 
   const router = useRouter();
+  const route = useRoute();
 
   const loading = ref(false);
   const saving = ref(false);
@@ -298,7 +299,13 @@
   };
 
   onMounted(() => {
-    // 级联选择器会自动加载并选择第一个楼层
+    // 从路由参数中获取楼层信息
+    const floorFromQuery = route.query.floor as string;
+    if (floorFromQuery) {
+      currentFloor.value = floorFromQuery;
+      loadFloorConfig(floorFromQuery);
+    }
+    // 如果没有传递楼层参数，级联选择器会自动加载并选择第一个楼层
   });
 </script>
 

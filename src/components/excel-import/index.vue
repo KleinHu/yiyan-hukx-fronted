@@ -47,6 +47,7 @@
           ref="fieldMappingRef"
           :excel-data="excelData"
           :preset-mappings="presetMappings"
+          :required-fields="requiredFields"
           :enable-template="enableTemplate"
           @change="handleMappingChange"
           @update:valid="mappingValid = $event"
@@ -408,6 +409,7 @@
         total: dataToUpload.length,
         uploaded: 0,
         failed: 0,
+        skipped: 0,
         percentage: 0,
         status: 'uploading',
         currentBatch: 0,
@@ -462,15 +464,41 @@
             uploadProgress.value.uploaded += result.successCount || 0;
             uploadProgress.value.failed += result.failedCount || 0;
 
+            // 更新跳过数量（如果后端返回了 skipCount）
+            if ('skipCount' in result && typeof result.skipCount === 'number') {
+              uploadProgress.value.skipped =
+                (uploadProgress.value.skipped || 0) + result.skipCount;
+            }
+
             // 记录后端返回的具体错误详情
             if (result.errors && Array.isArray(result.errors)) {
+              let skipCountFromErrors = 0;
               result.errors.forEach((err: any) => {
-                errorRecords.value.push({
-                  row: err.row,
-                  data: err.data,
-                  error: err.message || '后端处理失败',
-                });
+                const errorMessage = err.message || '后端处理失败';
+                // 如果错误信息包含"跳过"相关文字，统计到跳过数量
+                if (
+                  errorMessage.includes('跳过') ||
+                  errorMessage.includes('策略跳过')
+                ) {
+                  skipCountFromErrors += 1;
+                } else {
+                  errorRecords.value.push({
+                    row: err.row,
+                    data: err.data,
+                    error: errorMessage,
+                  });
+                }
               });
+              // 如果从错误信息中统计到了跳过数量，且后端没有返回 skipCount，则使用统计值
+              if (skipCountFromErrors > 0 && !('skipCount' in result)) {
+                uploadProgress.value.skipped =
+                  (uploadProgress.value.skipped || 0) + skipCountFromErrors;
+                // 从失败数量中减去跳过的数量（因为跳过的数据不应该计入失败）
+                uploadProgress.value.failed = Math.max(
+                  0,
+                  uploadProgress.value.failed - skipCountFromErrors
+                );
+              }
             }
           } else if (responseData.code === 200 || response.status === 200) {
             // 如果后端没按规范返回 result 对象，但请求成功了，兜底处理

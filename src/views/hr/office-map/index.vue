@@ -41,7 +41,38 @@
                 :selected-keys="selectedTreeKeys"
                 :show-line="true"
                 @select="handleTreeSelect"
-              />
+              >
+                <template #title="nodeData">
+                  {{ nodeData.title }}
+                </template>
+                <template #extra="nodeData">
+                  <div
+                    v-if="nodeData.isLeaf"
+                    class="tree-node-actions"
+                    @click.stop
+                  >
+                    <a-button
+                      type="text"
+                      size="mini"
+                      @click="handleEditFloor(nodeData)"
+                    >
+                      <template #icon>
+                        <icon-edit />
+                      </template>
+                    </a-button>
+                    <a-button
+                      type="text"
+                      size="mini"
+                      status="danger"
+                      @click="handleDeleteFloor(nodeData)"
+                    >
+                      <template #icon>
+                        <icon-delete />
+                      </template>
+                    </a-button>
+                  </div>
+                </template>
+              </a-tree>
               <a-empty v-else description="暂无位置数据" />
             </a-spin>
           </a-card>
@@ -235,13 +266,60 @@
         创建后可在"编辑布局"中设计房间布局
       </a-alert>
     </a-modal>
+
+    <!-- 编辑办公位置弹窗 -->
+    <a-modal
+      v-model:visible="editLocationVisible"
+      title="编辑办公位置"
+      :width="500"
+      @ok="handleEditLocation"
+      @cancel="resetEditLocationForm"
+    >
+      <a-form
+        ref="editLocationFormRef"
+        :model="editLocationForm"
+        :rules="editLocationRules"
+        layout="vertical"
+      >
+        <a-form-item field="buildingCode" label="办公楼编码">
+          <a-input
+            v-model="editLocationForm.buildingCode"
+            placeholder="请输入办公楼编码，如：201、232B"
+          />
+        </a-form-item>
+        <a-form-item field="buildingName" label="办公楼名称">
+          <a-input
+            v-model="editLocationForm.buildingName"
+            placeholder="请输入办公楼名称，如：研发大楼"
+          />
+        </a-form-item>
+        <a-form-item field="floorNumber" label="楼层">
+          <a-input-number
+            v-model="editLocationForm.floorNumber"
+            :min="1"
+            :max="99"
+            placeholder="请输入楼层数"
+            style="width: 100%"
+          />
+        </a-form-item>
+        <a-form-item field="floorName" label="楼层名称">
+          <a-input
+            v-model="editLocationForm.floorName"
+            placeholder="请输入楼层名称，如：一层、二层"
+          />
+        </a-form-item>
+      </a-form>
+      <a-alert type="warning" style="margin-top: 12px">
+        修改楼层编码或楼层号后，房间配置中的楼层标识也会相应更新
+      </a-alert>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, reactive, computed, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
-  import { Message } from '@arco-design/web-vue';
+  import { Message, Modal } from '@arco-design/web-vue';
   import type { FormInstance } from '@arco-design/web-vue';
   import officeApi from '@/api/hr/office';
   import type { FloorConfig, Employee, OfficeArea } from '@/api/hr/types';
@@ -264,6 +342,7 @@
     key: string;
     title: string;
     isLeaf: boolean;
+    floorId?: number; // 楼层ID（仅叶子节点有）
     children?: TreeNode[];
   }
 
@@ -296,6 +375,23 @@
     floorName: [{ required: true, message: '请输入楼层名称' }],
   };
 
+  // 编辑办公位置相关
+  const editLocationVisible = ref(false);
+  const editLocationFormRef = ref<FormInstance>();
+  const editLocationForm = reactive({
+    floorCode: '',
+    buildingCode: '',
+    buildingName: '',
+    floorNumber: 1,
+    floorName: '',
+  });
+  const editLocationRules = {
+    buildingCode: [{ required: true, message: '请输入办公楼编码' }],
+    buildingName: [{ required: true, message: '请输入办公楼名称' }],
+    floorNumber: [{ required: true, message: '请输入楼层' }],
+    floorName: [{ required: true, message: '请输入楼层名称' }],
+  };
+
   // 当前楼层名称
   const currentFloorName = computed(() => {
     return floorConfig.value?.floorName || '';
@@ -311,6 +407,7 @@
         key: floor.floor,
         title: `📍 ${floor.floorName} (${floor.employeeCount}人)`,
         isLeaf: true,
+        floorId: floor.id, // 保存楼层ID
       })),
     }));
   });
@@ -420,8 +517,15 @@
    * 跳转到布局编辑器
    */
   const goToEditor = () => {
+    if (!currentFloor.value) {
+      Message.warning('请先选择一个楼层');
+      return;
+    }
     router.push({
-      name: 'OfficeLayoutEditor',
+      name: 'hr-office-map-edit-20260121',
+      query: {
+        floor: currentFloor.value,
+      },
     });
   };
 
@@ -501,6 +605,172 @@
     }
   };
 
+  /**
+   * 编辑楼层
+   */
+  const handleEditFloor = (nodeData: TreeNode) => {
+    if (!nodeData.isLeaf) return;
+
+    const floorCode = nodeData.key;
+    // 从areaList中找到对应的楼层信息
+    const area = areaList.value.find((a) =>
+      a.floors.some((f) => f.floor === floorCode)
+    );
+    if (area) {
+      const floor = area.floors.find((f) => f.floor === floorCode);
+      if (floor) {
+        editLocationForm.floorCode = floorCode;
+        editLocationForm.buildingCode = floor.buildingCode;
+        editLocationForm.buildingName = area.buildingName || '';
+        editLocationForm.floorNumber = floor.floorNumber;
+        editLocationForm.floorName = floor.floorName;
+        editLocationVisible.value = true;
+      }
+    }
+  };
+
+  /**
+   * 重置编辑表单
+   */
+  const resetEditLocationForm = () => {
+    editLocationForm.floorCode = '';
+    editLocationForm.buildingCode = '';
+    editLocationForm.buildingName = '';
+    editLocationForm.floorNumber = 1;
+    editLocationForm.floorName = '';
+    editLocationFormRef.value?.resetFields();
+  };
+
+  /**
+   * 提交编辑办公位置
+   */
+  const handleEditLocation = async () => {
+    try {
+      const valid = await editLocationFormRef.value?.validate();
+      if (valid) return;
+
+      // 构建新的楼层标识
+      const newFloorCode = `${editLocationForm.buildingCode}-${editLocationForm.floorNumber}F`;
+      const oldFloorCode = editLocationForm.floorCode;
+
+      // 获取当前楼层配置
+      const configResponse = await officeApi.getFloorConfig(oldFloorCode);
+      if (configResponse.code !== 200 || !configResponse.data) {
+        Message.error('获取楼层配置失败');
+        return;
+      }
+
+      const floorConfig = configResponse.data;
+      // 更新楼层信息
+      floorConfig.floor = newFloorCode;
+      floorConfig.floorName = editLocationForm.floorName;
+      floorConfig.buildingCode = editLocationForm.buildingCode;
+      floorConfig.buildingName = editLocationForm.buildingName;
+      floorConfig.floorNumber = editLocationForm.floorNumber;
+
+      // 如果楼层代码改变，需要更新房间的floorCode
+      if (newFloorCode !== oldFloorCode) {
+        floorConfig.rooms.forEach((room) => {
+          room.floorCode = newFloorCode;
+        });
+        // 先保存新楼层配置
+        const saveResponse = await officeApi.saveFloorConfig(
+          newFloorCode,
+          floorConfig
+        );
+        if (saveResponse.code !== 200) {
+          Message.error(saveResponse.message || '保存新楼层配置失败');
+          return;
+        }
+        // 然后删除旧楼层配置（需要先找到旧楼层的ID）
+        const oldArea = areaList.value.find((a) =>
+          a.floors.some((f) => f.floor === oldFloorCode)
+        );
+        const oldFloor = oldArea?.floors.find((f) => f.floor === oldFloorCode);
+        if (oldFloor?.id) {
+          await officeApi.deleteFloorConfig(oldFloor.id);
+        }
+      } else {
+        // 楼层代码未改变，直接保存
+        const response = await officeApi.saveFloorConfig(
+          oldFloorCode,
+          floorConfig
+        );
+        if (response.code !== 200) {
+          Message.error(response.message || '编辑失败');
+          return;
+        }
+      }
+
+      Message.success('编辑办公位置成功');
+      editLocationVisible.value = false;
+      resetEditLocationForm();
+      // 重新加载位置列表
+      await loadAreaList();
+      // 如果当前选中的是编辑的楼层，需要重新加载
+      if (currentFloor.value === oldFloorCode) {
+        if (newFloorCode !== oldFloorCode) {
+          currentFloor.value = newFloorCode;
+          selectedTreeKeys.value = [newFloorCode];
+        }
+        await loadFloorConfig(newFloorCode);
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('编辑办公位置失败:', error);
+      Message.error('编辑办公位置失败');
+    }
+  };
+
+  /**
+   * 删除楼层
+   */
+  const handleDeleteFloor = (nodeData: TreeNode) => {
+    if (!nodeData.isLeaf || !nodeData.floorId) return;
+
+    const { floorId, key: floorCode } = nodeData;
+    // 从areaList中找到对应的楼层信息
+    const area = areaList.value.find((a) =>
+      a.floors.some((f) => f.floor === floorCode)
+    );
+    const floor = area?.floors.find((f) => f.floor === floorCode);
+    const floorName = floor?.floorName || '';
+
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除楼层"${floorName}"吗？删除后该楼层的所有房间配置也将被删除，此操作不可恢复。`,
+      okText: '确定删除',
+      cancelText: '取消',
+      okButtonProps: {
+        status: 'danger',
+      },
+      onOk: async () => {
+        try {
+          // 调用API删除楼层（通过ID）
+          const response = await officeApi.deleteFloorConfig(floorId);
+          if (response.code === 200) {
+            Message.success('删除楼层成功');
+            // 如果当前选中的是被删除的楼层，清空选择
+            if (currentFloor.value === floorCode) {
+              currentFloor.value = '';
+              selectedTreeKeys.value = [];
+              floorConfig.value = null;
+              employees.value = [];
+            }
+            // 重新加载位置列表
+            await loadAreaList();
+          } else {
+            Message.error(response.message || '删除失败');
+          }
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('删除楼层失败:', error);
+          Message.error('删除楼层失败');
+        }
+      },
+    });
+  };
+
   onMounted(() => {
     loadAreaList();
   });
@@ -508,7 +778,7 @@
 
 <script lang="ts">
   export default {
-    name: 'OfficeMap',
+    name: 'hr-map-office-20260121',
   };
 </script>
 
@@ -563,6 +833,10 @@
 
             &:hover {
               background-color: var(--color-fill-2);
+
+              .tree-node-actions {
+                opacity: 1;
+              }
             }
           }
 
@@ -572,6 +846,20 @@
 
           .arco-tree-node-title {
             font-size: 14px;
+          }
+        }
+
+        .tree-node-actions {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          opacity: 0;
+          transition: opacity 0.2s;
+
+          .arco-btn {
+            padding: 2px 4px;
+            height: 20px;
+            font-size: 12px;
           }
         }
       }

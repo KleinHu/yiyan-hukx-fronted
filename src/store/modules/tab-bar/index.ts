@@ -45,12 +45,27 @@ const useAppStore = defineStore('tabBar', {
       // 在ban_list中的菜单不会被加入到taglist中
       if (BAN_LIST.includes(route.name as string)) return;
 
+      // 检查是否已经存在相同的标签页
+      const existingIndex = this.tagList.findIndex(
+        (tag) => tag.name === route.name
+      );
+      if (existingIndex !== -1) {
+        // 如果已存在，更新标签页信息但不重复添加
+        this.tagList[existingIndex] = formatTag(route);
+        if (!route.meta.ignoreCache && route.name) {
+          this.cacheTabList.add(route.name as string);
+        }
+        return;
+      }
+
       if (this.tagList.length === MAX_TAG_NUM) {
         Message.info('打开的菜单数超过上限，打开新的菜单前先关闭一些');
         return;
       }
+
       this.tagList.push(formatTag(route));
-      if (!route.meta.ignoreCache) {
+      // 确保三级以上路由也能正确缓存
+      if (!route.meta.ignoreCache && route.name) {
         this.cacheTabList.add(route.name as string);
       }
     },

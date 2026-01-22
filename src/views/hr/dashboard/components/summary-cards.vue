@@ -22,7 +22,7 @@
               <span class="value">{{ data.overview.newHires3Years }}</span>
               <a-tag color="green" size="small" class="growth-tag">
                 <template #icon><icon-caret-up /></template>
-                {{ data.overview.newHiresGrowth }}%
+                {{ formattedGrowth }}%
               </a-tag>
             </div>
           </div>
@@ -36,13 +36,11 @@
       <a-card :bordered="false" hoverable class="summary-card">
         <div class="card-content">
           <div class="info">
-            <div class="label">活跃带教</div>
-            <div class="value">
-              {{ data.mentoringStats.activePairs }} <span class="unit">对</span>
-            </div>
+            <div class="label">荣誉总数</div>
+            <div class="value">{{ data.overview.totalHonors || 0 }}</div>
           </div>
           <a-avatar :size="48" shape="square" class="icon-wrapper bg-orange">
-            <icon-customer-service />
+            <icon-trophy />
           </a-avatar>
         </div>
       </a-card>
@@ -51,14 +49,11 @@
       <a-card :bordered="false" hoverable class="summary-card">
         <div class="card-content">
           <div class="info">
-            <div class="label">年度总课时</div>
-            <div class="value">
-              {{ data.mentoringStats.totalTeachingHours }}
-              <span class="unit">h</span>
-            </div>
+            <div class="label">新增荣誉 (&lt;3年)</div>
+            <div class="value">{{ data.overview.newHonors3Years || 0 }}</div>
           </div>
           <a-avatar :size="48" shape="square" class="icon-wrapper bg-green">
-            <icon-book />
+            <icon-star />
           </a-avatar>
         </div>
       </a-card>
@@ -67,11 +62,17 @@
 </template>
 
 <script setup lang="ts">
+  import { computed } from 'vue';
   import { DashboardData } from '@/api/hr/dashboard';
 
-  defineProps<{
+  const props = defineProps<{
     data: DashboardData;
   }>();
+
+  // 格式化增长率为整数
+  const formattedGrowth = computed(() => {
+    return Math.round(props.data.overview.newHiresGrowth || 0);
+  });
 </script>
 
 <style scoped lang="less">

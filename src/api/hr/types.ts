@@ -681,6 +681,7 @@ export interface OfficeArea {
  * 楼层从房间号第一个数字提取，如房间"111"表示1楼，"211"表示2楼
  */
 export interface FloorInfo {
+  id?: number; // 楼层ID
   floor: string; // 楼层标识（格式：办公楼编码-楼层，如：201-1F）
   floorName: string; // 楼层名称（如"一层"）
   buildingCode: string; // 所属办公楼编码
