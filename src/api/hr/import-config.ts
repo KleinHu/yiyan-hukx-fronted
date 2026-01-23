@@ -34,14 +34,14 @@ const importConfigApi = {
    * 获取所有启用的配置
    */
   getEnabledConfigs() {
-    return request.get<ImportConfigVO[]>('/api/hr/import-config/enabled');
+    return request.get<ImportConfigVO[]>('/api/240/hr/import-config/enabled');
   },
 
   /**
    * 获取所有配置
    */
   getAllConfigs() {
-    return request.get<ImportConfigVO[]>('/api/hr/import-config/list');
+    return request.get<ImportConfigVO[]>('/api/240/hr/import-config/list');
   },
 
   /**
@@ -49,7 +49,7 @@ const importConfigApi = {
    */
   getByCategory(category: string) {
     return request.get<ImportConfigVO[]>(
-      `/api/hr/import-config/category/${category}`
+      `/api/240/hr/import-config/category/${category}`
     );
   },
 
@@ -57,7 +57,7 @@ const importConfigApi = {
    * 获取所有分类
    */
   getCategories() {
-    return request.get<string[]>('/api/hr/import-config/categories');
+    return request.get<string[]>('/api/240/hr/import-config/categories');
   },
 
   /**
@@ -65,7 +65,7 @@ const importConfigApi = {
    */
   getByKey(configKey: string) {
     return request.get<ImportConfigVO>(
-      `/api/hr/import-config/key/${configKey}`
+      `/api/240/hr/import-config/key/${configKey}`
     );
   },
 
@@ -73,35 +73,35 @@ const importConfigApi = {
    * 获取配置详情
    */
   getById(id: number) {
-    return request.get<ImportConfigVO>(`/api/hr/import-config/${id}`);
+    return request.get<ImportConfigVO>(`/api/240/hr/import-config/${id}`);
   },
 
   /**
    * 创建配置
    */
   create(vo: ImportConfigVO) {
-    return request.post<ImportConfigVO>('/api/hr/import-config', vo);
+    return request.post<ImportConfigVO>('/api/240/hr/import-config', vo);
   },
 
   /**
    * 更新配置
    */
   update(id: number, vo: ImportConfigVO) {
-    return request.put<ImportConfigVO>(`/api/hr/import-config/${id}`, vo);
+    return request.put<ImportConfigVO>(`/api/240/hr/import-config/${id}`, vo);
   },
 
   /**
    * 删除配置
    */
   delete(id: number) {
-    return request.delete<void>(`/api/hr/import-config/${id}`);
+    return request.delete<void>(`/api/240/hr/import-config/${id}`);
   },
 
   /**
    * 启用/禁用配置
    */
   toggleEnabled(id: number, enabled: boolean) {
-    return request.patch<void>(`/api/hr/import-config/${id}/toggle`, null, {
+    return request.patch<void>(`/api/240/hr/import-config/${id}/toggle`, null, {
       params: { enabled },
     });
   },
@@ -110,7 +110,7 @@ const importConfigApi = {
    * 批量更新排序
    */
   updateSort(ids: number[]) {
-    return request.put<void>('/api/hr/import-config/sort', ids);
+    return request.put<void>('/api/240/hr/import-config/sort', ids);
   },
 };
 

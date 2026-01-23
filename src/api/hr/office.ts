@@ -16,7 +16,7 @@ const officeApi = {
    * @returns 办公区域列表
    */
   getAreaList(): Promise<ApiResponse<OfficeArea[]>> {
-    return request.get('/api/hr/office/areas');
+    return request.get('/api/240/hr/office/areas');
   },
 
   /**
@@ -24,7 +24,7 @@ const officeApi = {
    * @returns 楼层列表
    */
   getFloorList(): Promise<ApiResponse<FloorInfo[]>> {
-    return request.get('/api/hr/office/floors');
+    return request.get('/api/240/hr/office/floors');
   },
 
   /**
@@ -33,7 +33,7 @@ const officeApi = {
    * @returns 楼层配置
    */
   getFloorConfig(floor: string): Promise<ApiResponse<FloorConfig>> {
-    return request.get('/api/hr/office/floor-config', {
+    return request.get('/api/240/hr/office/floor-config', {
       params: { floor },
     });
   },
@@ -44,7 +44,7 @@ const officeApi = {
    * @returns 员工列表
    */
   getEmployeesByFloor(floor: string): Promise<ApiResponse<Employee[]>> {
-    return request.get('/api/hr/office/employees', {
+    return request.get('/api/240/hr/office/employees', {
       params: { floor },
     });
   },
@@ -60,7 +60,7 @@ const officeApi = {
       floor: string;
     } | null>
   > {
-    return request.get('/api/hr/office/search-employee', {
+    return request.get('/api/240/hr/office/search-employee', {
       params: { userName },
     });
   },
@@ -81,7 +81,7 @@ const officeApi = {
       height: number;
     }>
   ): Promise<ApiResponse<boolean>> {
-    return request.put(`/api/hr/office/rooms/${roomId}`, config);
+    return request.put(`/api/240/hr/office/rooms/${roomId}`, config);
   },
 
   /**
@@ -94,7 +94,10 @@ const officeApi = {
     floor: string,
     config: FloorConfig
   ): Promise<ApiResponse<boolean>> {
-    return request.put(`/api/hr/office/floor-config?floor=${floor}`, config);
+    return request.put(
+      `/api/240/hr/office/floor-config?floor=${floor}`,
+      config
+    );
   },
 
   /**
@@ -103,7 +106,7 @@ const officeApi = {
    * @returns 删除结果
    */
   deleteFloorConfig(id: number): Promise<ApiResponse<boolean>> {
-    return request.delete(`/api/hr/office/floor-config/${id}`);
+    return request.delete(`/api/240/hr/office/floor-config/${id}`);
   },
 };
 

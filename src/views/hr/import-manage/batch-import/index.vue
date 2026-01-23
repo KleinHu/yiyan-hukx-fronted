@@ -74,7 +74,7 @@
     <a-modal
       v-model:visible="importModalVisible"
       :title="`批量导入 - ${selectedType?.name || ''}`"
-      :width="1100"
+      :width="1200"
       :footer="false"
       :mask-closable="false"
       class="import-modal"

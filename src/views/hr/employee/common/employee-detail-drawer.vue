@@ -535,17 +535,54 @@
                       :title="item.courseName"
                     >
                       <template #extra>
-                        <a-tag size="small" color="blue">
-                          {{ getCertLevelName(item.certificationLevel) }}
-                        </a-tag>
+                        <a-space :size="8" wrap>
+                          <a-tag
+                            v-if="item.courseTypeName || item.courseType"
+                            size="small"
+                            :color="
+                              item.courseType === 1
+                                ? 'blue'
+                                : item.courseType === 2
+                                ? 'orange'
+                                : item.courseType === 3
+                                ? 'green'
+                                : 'gray'
+                            "
+                          >
+                            {{
+                              item.courseTypeName ||
+                              getCourseTypeName(item.courseType)
+                            }}
+                          </a-tag>
+                          <a-tag
+                            v-if="
+                              item.certificationLevelName ||
+                              item.certificationLevel
+                            "
+                            size="small"
+                            color="purple"
+                          >
+                            {{
+                              item.certificationLevelName ||
+                              getCertLevelName(item.certificationLevel)
+                            }}
+                          </a-tag>
+                        </a-space>
                       </template>
                       <template #description>
-                        授课类型：<span class="highlight">{{
-                          item.courseTypeName ||
-                          getCourseTypeName(item.courseType)
-                        }}</span>
-                        <a-divider direction="vertical" />
-                        认证日期：{{ formatDate(item.certificationDate) }}
+                        <div class="item-details">
+                          <span
+                            v-if="item.certificationDate"
+                            class="detail-item"
+                          >
+                            <icon-calendar />
+                            认证日期：{{ formatDate(item.certificationDate) }}
+                          </span>
+                          <span v-if="item.remark" class="detail-item">
+                            <icon-info-circle />
+                            备注：{{ item.remark }}
+                          </span>
+                        </div>
                       </template>
                     </DataItem>
                   </div>
@@ -577,13 +614,34 @@
                       :key="item.id"
                       border-color="#3491fa"
                       :title="item.courseName"
-                      :extra="formatDate(item.createTime as string)"
                     >
+                      <template #extra>
+                        <a-tag
+                          v-if="item.courseTypeName || item.courseType"
+                          size="small"
+                          :color="
+                            item.courseType === 1
+                              ? 'blue'
+                              : item.courseType === 2
+                              ? 'orange'
+                              : item.courseType === 3
+                              ? 'green'
+                              : 'gray'
+                          "
+                        >
+                          {{
+                            item.courseTypeName ||
+                            getCourseTypeName(item.courseType)
+                          }}
+                        </a-tag>
+                      </template>
                       <template #description>
-                        授课类型：<span class="highlight">{{
-                          item.courseTypeName ||
-                          getCourseTypeName(item.courseType)
-                        }}</span>
+                        <div v-if="item.remark" class="item-details">
+                          <span class="detail-item">
+                            <icon-info-circle />
+                            备注：{{ item.remark }}
+                          </span>
+                        </div>
                       </template>
                     </DataItem>
                   </div>
@@ -1363,6 +1421,25 @@
         .item-label {
           color: #86909c;
           font-size: 12px;
+        }
+
+        .item-details {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 8px;
+          font-size: 12px;
+          color: #86909c;
+
+          .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+
+            .arco-icon {
+              font-size: 12px;
+            }
+          }
         }
       }
 

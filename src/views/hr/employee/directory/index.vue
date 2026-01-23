@@ -25,20 +25,18 @@
             </a-input>
           </a-col>
           <a-col :xs="24" :sm="12" :md="6" :lg="4" :xl="4">
-            <a-select
+            <a-tree-select
               v-model="searchForm.departmentId"
+              :data="departmentTreeData"
               placeholder="选择部门"
               allow-clear
+              :field-names="{
+                key: 'deptId',
+                title: 'deptName',
+                children: 'children',
+              }"
               @change="handleSearch"
-            >
-              <a-option
-                v-for="dept in departmentList"
-                :key="dept.deptId"
-                :value="dept.deptId"
-              >
-                {{ dept.deptName }}
-              </a-option>
-            </a-select>
+            />
           </a-col>
           <a-col :xs="24" :sm="12" :md="5" :lg="4" :xl="4">
             <a-input
@@ -157,7 +155,7 @@
       autoLoad: false, // 手动控制加载
     });
 
-  const { departmentList, fetchDepartmentList } = useDepartmentTree({
+  const { departmentTreeData, fetchDepartmentTree } = useDepartmentTree({
     autoLoad: false, // 手动控制加载
   });
 
@@ -198,10 +196,10 @@
   };
 
   /**
-   * 获取部门列表
+   * 获取部门树
    */
-  const getDepartmentList = async () => {
-    await fetchDepartmentList();
+  const getDepartmentTree = async () => {
+    await fetchDepartmentTree();
   };
 
   /**
@@ -258,7 +256,7 @@
 
   // 组件挂载时初始化数据
   onMounted(() => {
-    getDepartmentList();
+    getDepartmentTree();
     getEmployeeList();
   });
 </script>

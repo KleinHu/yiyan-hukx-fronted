@@ -72,7 +72,7 @@ export interface DashboardData {
 
 const dashboardApi = {
   getDashboardData(): Promise<ApiResponse<DashboardData>> {
-    return request.get('/api/hr/dashboard/stats');
+    return request.get('/api/240/hr/dashboard/stats');
   },
 };
 

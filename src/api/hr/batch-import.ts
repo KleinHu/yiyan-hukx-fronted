@@ -7,7 +7,7 @@ import type { ApiResponse } from '@/api/hr/types';
  * - http://192.168.1.100:9000/hr-templates
  * - https://minio.your-domain.com/hr-templates
  */
-export const TEMPLATE_BASE_URL = '/api/hr/templates';
+export const TEMPLATE_BASE_URL = '/api/240/hr/templates';
 
 /**
  * 数据导入冲突处理策略
@@ -28,6 +28,11 @@ export enum ImportStrategy {
    * 报错提醒：如果数据已存在，则标记为错误数据
    */
   ERROR = 'ERROR',
+
+  /**
+   * 全量更新：删除该员工的所有相关记录后，全部插入新数据
+   */
+  FULL_UPDATE = 'FULL_UPDATE',
 }
 
 /**
@@ -100,7 +105,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工工号、姓名、部门、职位、联系方式等基本信息',
     category: '基础数据',
     icon: 'icon-user',
-    apiUrl: '/api/hr/batch-import/employees',
+    apiUrl: '/api/240/hr/batch-import/employees',
     templateUrl: `${TEMPLATE_BASE_URL}/员工基础信息导入模板.xlsx`,
     templateName: '员工基础信息导入模板.xlsx',
     presetMappings: {
@@ -144,7 +149,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入部门层级结构、名称等信息',
     category: '基础数据',
     icon: 'icon-mind-mapping',
-    apiUrl: '/api/hr/batch-import/departments',
+    apiUrl: '/api/240/hr/batch-import/departments',
     templateUrl: `${TEMPLATE_BASE_URL}/部门信息导入模板.xlsx`,
     templateName: '部门信息导入模板.xlsx',
     presetMappings: {
@@ -172,7 +177,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工学历、毕业院校、专业等教育信息',
     category: '档案数据',
     icon: 'icon-book',
-    apiUrl: '/api/hr/batch-import/educations',
+    apiUrl: '/api/240/hr/batch-import/educations',
     templateUrl: `${TEMPLATE_BASE_URL}/教育背景导入模板.xlsx`,
     templateName: '教育背景导入模板.xlsx',
     presetMappings: {
@@ -196,7 +201,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工岗位分类、专业序列等信息',
     category: '档案数据',
     icon: 'icon-bookmark',
-    apiUrl: '/api/hr/batch-import/positions',
+    apiUrl: '/api/240/hr/batch-import/positions',
     templateUrl: `${TEMPLATE_BASE_URL}/岗位信息导入模板.xlsx`,
     templateName: '岗位信息导入模板.xlsx',
     presetMappings: {
@@ -219,7 +224,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工年度绩效评级、分数等考核信息',
     category: '考核数据',
     icon: 'icon-bar-chart',
-    apiUrl: '/api/hr/batch-import/performances',
+    apiUrl: '/api/240/hr/batch-import/performances',
     templateUrl: `${TEMPLATE_BASE_URL}/绩效记录导入模板.xlsx`,
     templateName: '绩效记录导入模板.xlsx',
     presetMappings: {
@@ -243,7 +248,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工技能等级、鉴定工种等信息',
     category: '考核数据',
     icon: 'icon-tool',
-    apiUrl: '/api/hr/batch-import/skill-certifications',
+    apiUrl: '/api/240/hr/batch-import/skill-certifications',
     templateUrl: `${TEMPLATE_BASE_URL}/技能鉴定导入模板.xlsx`,
     templateName: '技能鉴定导入模板.xlsx',
     presetMappings: {
@@ -266,7 +271,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工获奖记录、荣誉称号等信息',
     category: '奖励数据',
     icon: 'icon-trophy',
-    apiUrl: '/api/hr/batch-import/honors',
+    apiUrl: '/api/240/hr/batch-import/honors',
     templateUrl: `${TEMPLATE_BASE_URL}/荣誉情况导入模板.xlsx`,
     templateName: '荣誉情况导入模板.xlsx',
     presetMappings: {
@@ -294,7 +299,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工紧急联系人姓名、关系、电话等信息',
     category: '联系信息',
     icon: 'icon-phone',
-    apiUrl: '/api/hr/batch-import/emergency-contacts',
+    apiUrl: '/api/240/hr/batch-import/emergency-contacts',
     templateUrl: `${TEMPLATE_BASE_URL}/紧急联系人导入模板.xlsx`,
     templateName: '紧急联系人导入模板.xlsx',
     presetMappings: {
@@ -319,7 +324,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工授课资质认证信息',
     category: '培训数据',
     icon: 'icon-user-add',
-    apiUrl: '/api/hr/batch-import/teaching-certifications',
+    apiUrl: '/api/240/hr/batch-import/teaching-certifications',
     templateUrl: `${TEMPLATE_BASE_URL}/授课认证导入模板.xlsx`,
     templateName: '授课认证导入模板.xlsx',
     presetMappings: {
@@ -344,7 +349,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工授课认定记录',
     category: '培训数据',
     icon: 'icon-edit',
-    apiUrl: '/api/hr/batch-import/teaching-records',
+    apiUrl: '/api/240/hr/batch-import/teaching-records',
     templateUrl: `${TEMPLATE_BASE_URL}/授课记录导入模板.xlsx`,
     templateName: '授课记录导入模板.xlsx',
     presetMappings: {
@@ -366,7 +371,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工EHS、安全、保密等二级教育培训记录',
     category: '培训数据',
     icon: 'icon-file-audio',
-    apiUrl: '/api/hr/batch-import/secondary-educations',
+    apiUrl: '/api/240/hr/batch-import/secondary-educations',
     templateUrl: `${TEMPLATE_BASE_URL}/二级教育导入模板.xlsx`,
     templateName: '二级教育导入模板.xlsx',
     presetMappings: {
@@ -396,7 +401,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工内部培训课程信息',
     category: '培训数据',
     icon: 'icon-video-camera',
-    apiUrl: '/api/hr/batch-import/internal-trainers',
+    apiUrl: '/api/240/hr/batch-import/internal-trainers',
     templateUrl: `${TEMPLATE_BASE_URL}/内训信息导入模板.xlsx`,
     templateName: '内训信息导入模板.xlsx',
     presetMappings: {
@@ -417,7 +422,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入员工师徒关系信息',
     category: '培训数据',
     icon: 'icon-user-group',
-    apiUrl: '/api/hr/batch-import/mentors',
+    apiUrl: '/api/240/hr/batch-import/mentors',
     templateUrl: `${TEMPLATE_BASE_URL}/岗位师傅导入模板.xlsx`,
     templateName: '岗位师傅导入模板.xlsx',
     presetMappings: {
@@ -447,7 +452,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入公司职级体系配置',
     category: '基础配置',
     icon: 'icon-layers',
-    apiUrl: '/api/hr/batch-import/job-ranks',
+    apiUrl: '/api/240/hr/batch-import/job-ranks',
     templateUrl: `${TEMPLATE_BASE_URL}/职级信息导入模板.xlsx`,
     templateName: '职级信息导入模板.xlsx',
     presetMappings: {
@@ -471,7 +476,7 @@ export const importTypeConfigs: ImportTypeConfig[] = [
     description: '导入专业技术职称配置',
     category: '基础配置',
     icon: 'icon-idcard',
-    apiUrl: '/api/hr/batch-import/professional-titles',
+    apiUrl: '/api/240/hr/batch-import/professional-titles',
     templateUrl: `${TEMPLATE_BASE_URL}/职称信息导入模板.xlsx`,
     templateName: '职称信息导入模板.xlsx',
     presetMappings: {
@@ -526,7 +531,7 @@ const batchImportApi = {
   importEmployees(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/employees', { data });
+    return request.post('/api/240/hr/batch-import/employees', { data });
   },
 
   /**
@@ -535,7 +540,7 @@ const batchImportApi = {
   importDepartments(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/departments', { data });
+    return request.post('/api/240/hr/batch-import/departments', { data });
   },
 
   /**
@@ -544,7 +549,7 @@ const batchImportApi = {
   importEducations(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/educations', { data });
+    return request.post('/api/240/hr/batch-import/educations', { data });
   },
 
   /**
@@ -553,7 +558,7 @@ const batchImportApi = {
   importPositions(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/positions', { data });
+    return request.post('/api/240/hr/batch-import/positions', { data });
   },
 
   /**
@@ -562,7 +567,7 @@ const batchImportApi = {
   importPerformances(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/performances', { data });
+    return request.post('/api/240/hr/batch-import/performances', { data });
   },
 
   /**
@@ -571,7 +576,9 @@ const batchImportApi = {
   importSkillCertifications(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/skill-certifications', { data });
+    return request.post('/api/240/hr/batch-import/skill-certifications', {
+      data,
+    });
   },
 
   /**
@@ -580,7 +587,7 @@ const batchImportApi = {
   importHonors(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/honors', { data });
+    return request.post('/api/240/hr/batch-import/honors', { data });
   },
 
   /**
@@ -589,7 +596,9 @@ const batchImportApi = {
   importEmergencyContacts(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/emergency-contacts', { data });
+    return request.post('/api/240/hr/batch-import/emergency-contacts', {
+      data,
+    });
   },
 
   /**
@@ -598,7 +607,7 @@ const batchImportApi = {
   importTeachingCertifications(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/teaching-certifications', {
+    return request.post('/api/240/hr/batch-import/teaching-certifications', {
       data,
     });
   },
@@ -609,7 +618,7 @@ const batchImportApi = {
   importTeachingRecords(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/teaching-records', { data });
+    return request.post('/api/240/hr/batch-import/teaching-records', { data });
   },
 
   /**
@@ -618,7 +627,9 @@ const batchImportApi = {
   importSecondaryEducations(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/secondary-educations', { data });
+    return request.post('/api/240/hr/batch-import/secondary-educations', {
+      data,
+    });
   },
 
   /**
@@ -627,7 +638,7 @@ const batchImportApi = {
   importInternalTrainers(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/internal-trainers', { data });
+    return request.post('/api/240/hr/batch-import/internal-trainers', { data });
   },
 
   /**
@@ -636,7 +647,7 @@ const batchImportApi = {
   importMentors(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/mentors', { data });
+    return request.post('/api/240/hr/batch-import/mentors', { data });
   },
 
   /**
@@ -645,7 +656,7 @@ const batchImportApi = {
   importJobRanks(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/job-ranks', { data });
+    return request.post('/api/240/hr/batch-import/job-ranks', { data });
   },
 
   /**
@@ -654,7 +665,9 @@ const batchImportApi = {
   importProfessionalTitles(
     data: Record<string, any>[]
   ): Promise<ApiResponse<BatchImportResult>> {
-    return request.post('/api/hr/batch-import/professional-titles', { data });
+    return request.post('/api/240/hr/batch-import/professional-titles', {
+      data,
+    });
   },
 };
 

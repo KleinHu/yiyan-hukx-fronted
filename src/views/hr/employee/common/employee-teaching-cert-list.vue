@@ -22,22 +22,45 @@
           >
             <DataItem border-color="#165dff" :title="item.courseName">
               <template #extra>
-                <a-tag v-if="item.courseType === 1" size="small" color="blue"
-                  >技能</a-tag
+                <a-space :size="8" wrap>
+                  <a-tag
+                    v-if="item.courseTypeName"
+                    size="small"
+                    :color="
+                      item.courseType === 1
+                        ? 'blue'
+                        : item.courseType === 2
+                        ? 'orange'
+                        : item.courseType === 3
+                        ? 'green'
+                        : 'gray'
+                    "
+                  >
+                    {{ item.courseTypeName }}
+                  </a-tag>
+                  <a-tag
+                    v-if="item.certificationLevelName"
+                    size="small"
+                    color="purple"
+                  >
+                    {{ item.certificationLevelName }}
+                  </a-tag>
+                </a-space>
+              </template>
+              <template #description>
+                <div
+                  v-if="item.certificationDate || item.remark"
+                  class="item-details"
                 >
-                <a-tag
-                  v-else-if="item.courseType === 2"
-                  size="small"
-                  color="orange"
-                  >管理</a-tag
-                >
-                <a-tag
-                  v-else-if="item.courseType === 3"
-                  size="small"
-                  color="green"
-                  >技术</a-tag
-                >
-                <span v-else>-</span>
+                  <span v-if="item.certificationDate" class="detail-item">
+                    <icon-calendar />
+                    认证日期：{{ item.certificationDate }}
+                  </span>
+                  <span v-if="item.remark" class="detail-item">
+                    <icon-info-circle />
+                    备注：{{ item.remark }}
+                  </span>
+                </div>
               </template>
               <template v-if="!readonly" #action>
                 <a-space :size="4" direction="vertical">
@@ -381,6 +404,24 @@
       :deep(.arco-col) {
         padding: 0 8px;
         margin-bottom: 16px;
+      }
+    }
+
+    .item-details {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      color: #86909c;
+
+      .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        .arco-icon {
+          font-size: 12px;
+        }
       }
     }
   }

@@ -11,7 +11,9 @@ const employeeApi = {
    * @returns 员工列表分页数据
    */
   getEmployeePage(params: EmployeePageParams) {
-    return request.get<PageResult<Employee>>('/api/hr/employees', { params });
+    return request.get<PageResult<Employee>>('/api/240/hr/employees', {
+      params,
+    });
   },
 
   /**
@@ -20,7 +22,7 @@ const employeeApi = {
    * @returns 员工详情
    */
   getEmployeeByUserCode(userCode: string) {
-    return request.get<Employee>(`/api/hr/employees/${userCode}`);
+    return request.get<Employee>(`/api/240/hr/employees/${userCode}`);
   },
 
   /**
@@ -29,7 +31,7 @@ const employeeApi = {
    * @returns 新增结果（返回userCode）
    */
   createEmployee(data: Partial<Employee>) {
-    return request.post<string>('/api/hr/employees', data);
+    return request.post<string>('/api/240/hr/employees', data);
   },
 
   /**
@@ -39,7 +41,7 @@ const employeeApi = {
    * @returns 更新结果
    */
   updateEmployee(userCode: string, data: Partial<Employee>) {
-    return request.put<boolean>(`/api/hr/employees/${userCode}`, data);
+    return request.put<boolean>(`/api/240/hr/employees/${userCode}`, data);
   },
 
   /**
@@ -48,7 +50,7 @@ const employeeApi = {
    * @returns 删除结果
    */
   deleteEmployee(userCode: string) {
-    return request.delete<boolean>(`/api/hr/employees/${userCode}`);
+    return request.delete<boolean>(`/api/240/hr/employees/${userCode}`);
   },
 };
 

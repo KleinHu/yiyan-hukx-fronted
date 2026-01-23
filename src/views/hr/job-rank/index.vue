@@ -129,11 +129,11 @@
         :label-col-props="{ span: 6 }"
         :wrapper-col-props="{ span: 18 }"
       >
-        <a-form-item label="职级ID" field="rankId" v-if="isEdit">
+        <a-form-item v-if="isEdit" label="职级ID" field="rankId">
           <a-input v-model="formData.rankId" disabled />
         </a-form-item>
 
-        <a-form-item label="职级ID" field="rankId" v-else>
+        <a-form-item v-else label="职级ID" field="rankId">
           <a-input
             v-model="formData.rankId"
             placeholder="请输入职级ID（如 TECH_L5, FUNC_M3）"
@@ -181,9 +181,9 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, computed } from 'vue';
-  import { Message, Modal } from '@arco-design/web-vue';
-  import jobRankApi from '@/api/hr/job-rank';
+  import { ref, reactive, computed } from 'vue';
+  import { Modal } from '@arco-design/web-vue';
+  import useJobRank from '@/hooks/hr/job-rank';
   import type { JobRank } from '@/api/hr/types';
   import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
 
@@ -249,9 +249,17 @@
     },
   ];
 
+  // 使用 Hook
+  const {
+    loading,
+    jobRankList,
+    fetchJobRankList,
+    createJobRank,
+    updateJobRank,
+    deleteJobRank,
+  } = useJobRank({ autoLoad: false });
+
   // 响应式数据
-  const loading = ref(false);
-  const rankList = ref<JobRank[]>([]);
   const modalVisible = ref(false);
   const isEdit = ref(false);
   const currentRank = ref<JobRank | null>(null);
@@ -329,30 +337,24 @@
   };
 
   /**
-   * 获取职级列表
+   * 获取职级列表（带搜索过滤）
    */
-  const getRankList = async () => {
-    try {
-      loading.value = true;
-      const { data } = await jobRankApi.getJobRankList();
-      let list = data || [];
-      // 搜索过滤
-      if (searchForm.rankName) {
-        list = list.filter((rank) =>
-          rank.rankName.includes(searchForm.rankName!)
-        );
-      }
-      if (searchForm.rankType !== undefined) {
-        list = list.filter((rank) => rank.rankType === searchForm.rankType);
-      }
-      rankList.value = list;
-    } catch (error) {
-      console.error('获取职级列表失败:', error);
-      Message.error('获取职级列表失败');
-    } finally {
-      loading.value = false;
-    }
+  const getRankList = async (): Promise<void> => {
+    await fetchJobRankList();
   };
+
+  // 过滤后的职级列表
+  const rankList = computed(() => {
+    let list = [...jobRankList.value];
+    const { rankName, rankType } = searchForm;
+    if (rankName) {
+      list = list.filter((rank) => rank.rankName.includes(rankName));
+    }
+    if (rankType !== undefined) {
+      list = list.filter((rank) => rank.rankType === rankType);
+    }
+    return list;
+  });
 
   /**
    * 处理搜索
@@ -393,17 +395,14 @@
   /**
    * 删除职级
    */
-  const handleDelete = (rank: JobRank) => {
+  const handleDelete = (rank: JobRank): void => {
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除职级"${rank.rankName}"吗？`,
       onOk: async () => {
-        try {
-          await jobRankApi.deleteJobRank(rank.rankId);
-          Message.success('删除成功');
-          getRankList();
-        } catch (error) {
-          console.error('删除职级失败:', error);
+        const success = await deleteJobRank(rank.rankId);
+        if (success) {
+          await getRankList();
         }
       },
     });
@@ -435,29 +434,24 @@
   /**
    * 提交表单
    */
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     const valid = await formRef.value?.validate();
     if (!valid) {
       return;
     }
 
-    try {
-      if (isEdit.value && currentRank.value) {
-        // 更新
-        await jobRankApi.updateJobRank(currentRank.value.rankId, formData);
-        Message.success('更新成功');
-        modalVisible.value = false;
-        getRankList();
-      } else {
-        // 新增
-        await jobRankApi.createJobRank(formData);
-        Message.success('新增成功');
-        modalVisible.value = false;
-        getRankList();
-      }
-    } catch (error) {
-      console.error('提交失败:', error);
-      Message.error('提交失败');
+    let success = false;
+    if (isEdit.value && currentRank.value) {
+      // 更新
+      success = await updateJobRank(currentRank.value.rankId, formData);
+    } else {
+      // 新增
+      success = await createJobRank(formData);
+    }
+
+    if (success) {
+      modalVisible.value = false;
+      await getRankList();
     }
   };
 
@@ -470,9 +464,7 @@
   };
 
   // 初始化
-  onMounted(() => {
-    getRankList();
-  });
+  getRankList();
 </script>
 
 <style scoped lang="less">

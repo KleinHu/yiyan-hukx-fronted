@@ -13,7 +13,7 @@ export default mergeConfig(
       },
       // proxy代理
       proxy: {
-        '^/api/hr': {
+        '^/api/240/hr': {
           target: 'http://localhost:10008',
           changeOrigin: true,
         },

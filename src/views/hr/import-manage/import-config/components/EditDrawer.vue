@@ -116,7 +116,7 @@
             <a-form-item field="apiUrl" label="导入API地址 *" required>
               <a-input
                 v-model="localForm.apiUrl"
-                placeholder="/api/hr/batch-import/xxx"
+                placeholder="/api/240/hr/batch-import/xxx"
               >
                 <template #prefix>
                   <icon-link class="input-icon" />

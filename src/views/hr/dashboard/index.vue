@@ -21,14 +21,16 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
-  import dashboardApi, { DashboardData } from '@/api/hr/dashboard';
+  import { computed } from 'vue';
+  import useDashboard from '@/hooks/hr/dashboard';
+  import { DashboardData } from '@/api/hr/dashboard';
   import SummaryCards from './components/summary-cards.vue';
   import HonorStats from './components/honor-stats.vue';
   import ChartSection from './components/chart-section.vue';
   import DepartmentEducation from './components/department-education.vue';
 
-  const loading = ref(false);
+  // 使用 Hook
+  const { loading, dashboardData: dashboardDataFromApi } = useDashboard();
 
   // 默认示例数据
   const defaultDashboardData: DashboardData = {
@@ -88,68 +90,52 @@
     departmentEducationStats: [],
   };
 
-  const dashboardData = ref<DashboardData>(defaultDashboardData);
-
-  const fetchDashboardData = async () => {
-    try {
-      loading.value = true;
-      const res = await dashboardApi.getDashboardData();
-      if (res.code === 200 && res.data) {
-        // 合并API返回的数据和默认数据，确保所有字段都有值
-        dashboardData.value = {
-          overview: {
-            ...defaultDashboardData.overview,
-            ...res.data.overview,
-          },
-          // 年龄结构（用于图表展示）
-          ageStructure: res.data.ageStructure || [],
-          // 学历分布（用于图表展示）
-          educationDistribution: res.data.educationDistribution || [],
-          // 技术人员分析（已删除，不再使用）
-          technicalStaffAnalysis: [],
-          rankDistribution:
-            res.data.rankDistribution?.length > 0
-              ? res.data.rankDistribution
-              : defaultDashboardData.rankDistribution,
-          jobCategoryDistribution:
-            res.data.jobCategoryDistribution?.length > 0
-              ? res.data.jobCategoryDistribution
-              : defaultDashboardData.jobCategoryDistribution,
-          rankLevelDistribution: res.data.rankLevelDistribution || [],
-          honorStats:
-            res.data.honorStats?.length > 0
-              ? res.data.honorStats
-              : defaultDashboardData.honorStats,
-          mentoringStats: {
-            ...defaultDashboardData.mentoringStats,
-            ...res.data.mentoringStats,
-          },
-          teachingLeaderboard:
-            res.data.teachingLeaderboard?.length > 0
-              ? res.data.teachingLeaderboard
-              : defaultDashboardData.teachingLeaderboard,
-          trainingStats:
-            res.data.trainingStats?.length > 0
-              ? res.data.trainingStats
-              : defaultDashboardData.trainingStats,
-          departmentEducationStats:
-            res.data.departmentEducationStats?.length > 0
-              ? res.data.departmentEducationStats
-              : res.data.departmentEducationStats || [], // 使用后端返回的数据，即使为空数组
-        };
-      } else {
-        // API返回异常时使用默认数据
-        dashboardData.value = { ...defaultDashboardData };
-      }
-    } catch (error) {
-      // 请求失败时使用默认数据
-      dashboardData.value = { ...defaultDashboardData };
-    } finally {
-      loading.value = false;
+  // 合并API返回的数据和默认数据，确保所有字段都有值
+  const dashboardData = computed(() => {
+    const apiData = dashboardDataFromApi.value;
+    if (!apiData) {
+      return defaultDashboardData;
     }
-  };
-
-  onMounted(() => {
-    fetchDashboardData();
+    return {
+      overview: {
+        ...defaultDashboardData.overview,
+        ...apiData.overview,
+      },
+      // 年龄结构（用于图表展示）
+      ageStructure: apiData.ageStructure || [],
+      // 学历分布（用于图表展示）
+      educationDistribution: apiData.educationDistribution || [],
+      // 技术人员分析（已删除，不再使用）
+      technicalStaffAnalysis: [],
+      rankDistribution:
+        apiData.rankDistribution?.length > 0
+          ? apiData.rankDistribution
+          : defaultDashboardData.rankDistribution,
+      jobCategoryDistribution:
+        apiData.jobCategoryDistribution?.length > 0
+          ? apiData.jobCategoryDistribution
+          : defaultDashboardData.jobCategoryDistribution,
+      rankLevelDistribution: apiData.rankLevelDistribution || [],
+      honorStats:
+        apiData.honorStats?.length > 0
+          ? apiData.honorStats
+          : defaultDashboardData.honorStats,
+      mentoringStats: {
+        ...defaultDashboardData.mentoringStats,
+        ...apiData.mentoringStats,
+      },
+      teachingLeaderboard:
+        apiData.teachingLeaderboard?.length > 0
+          ? apiData.teachingLeaderboard
+          : defaultDashboardData.teachingLeaderboard,
+      trainingStats:
+        apiData.trainingStats?.length > 0
+          ? apiData.trainingStats
+          : defaultDashboardData.trainingStats,
+      departmentEducationStats:
+        apiData.departmentEducationStats?.length > 0
+          ? apiData.departmentEducationStats
+          : apiData.departmentEducationStats || [], // 使用后端返回的数据，即使为空数组
+    };
   });
 </script>

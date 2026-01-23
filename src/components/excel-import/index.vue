@@ -135,21 +135,26 @@
                     type="button"
                     size="medium"
                   >
-                    <a-radio :value="ImportStrategy.OVERWRITE">
-                      <a-tooltip content="如果工号已存在，则覆盖旧数据">
+                    <a-tooltip content="如果数据已存在，则覆盖旧数据">
+                      <a-radio :value="ImportStrategy.OVERWRITE">
                         覆盖更新
-                      </a-tooltip>
-                    </a-radio>
-                    <a-radio :value="ImportStrategy.SKIP">
-                      <a-tooltip content="如果工号已存在，则跳过不导入">
-                        跳过重复
-                      </a-tooltip>
-                    </a-radio>
-                    <a-radio :value="ImportStrategy.ERROR">
-                      <a-tooltip content="如果工号已存在，则标记为错误数据">
+                      </a-radio>
+                    </a-tooltip>
+                    <a-tooltip content="如果数据已存在，则跳过不导入">
+                      <a-radio :value="ImportStrategy.SKIP"> 跳过重复 </a-radio>
+                    </a-tooltip>
+                    <a-tooltip content="如果数据已存在，则标记为错误数据">
+                      <a-radio :value="ImportStrategy.ERROR">
                         报错提醒
-                      </a-tooltip>
-                    </a-radio>
+                      </a-radio>
+                    </a-tooltip>
+                    <a-tooltip
+                      content="删除该员工的所有相关记录后，全部插入新数据"
+                    >
+                      <a-radio :value="ImportStrategy.FULL_UPDATE">
+                        全量更新
+                      </a-radio>
+                    </a-tooltip>
                   </a-radio-group>
                 </div>
               </div>

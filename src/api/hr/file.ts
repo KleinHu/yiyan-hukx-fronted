@@ -28,7 +28,7 @@ const fileApi = {
     if (path) {
       formData.append('path', path);
     }
-    return request.post<FileUploadResult>('/api/hr/file/upload', formData, {
+    return request.post<FileUploadResult>('/api/240/hr/file/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -50,7 +50,7 @@ const fileApi = {
       formData.append('path', path);
     }
     return request.post<FileUploadResult[]>(
-      '/api/hr/file/upload/batch',
+      '/api/240/hr/file/upload/batch',
       formData,
       {
         headers: {
@@ -66,7 +66,7 @@ const fileApi = {
    * @returns 删除结果
    */
   deleteFile(objectName: string) {
-    return request.delete<boolean>('/api/hr/file/delete', {
+    return request.delete<boolean>('/api/240/hr/file/delete', {
       params: { objectName },
     });
   },
@@ -77,7 +77,7 @@ const fileApi = {
    * @returns 是否存在
    */
   fileExists(objectName: string) {
-    return request.get<boolean>('/api/hr/file/exists', {
+    return request.get<boolean>('/api/240/hr/file/exists', {
       params: { objectName },
     });
   },
@@ -93,7 +93,7 @@ const fileApi = {
     if (expiry) {
       params.expiry = expiry;
     }
-    return request.get<string>('/api/hr/file/url', {
+    return request.get<string>('/api/240/hr/file/url', {
       params,
     });
   },

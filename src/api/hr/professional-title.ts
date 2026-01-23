@@ -10,7 +10,7 @@ const professionalTitleApi = {
    * 获取职称列表
    */
   getProfessionalTitleList(): Promise<ApiResponse<ProfessionalTitle[]>> {
-    return request.get('/api/hr/professional-titles');
+    return request.get('/api/240/hr/professional-titles');
   },
 
   /**
@@ -19,7 +19,7 @@ const professionalTitleApi = {
   getProfessionalTitleDetail(
     titleId: string
   ): Promise<ApiResponse<ProfessionalTitle>> {
-    return request.get(`/api/hr/professional-titles/${titleId}`);
+    return request.get(`/api/240/hr/professional-titles/${titleId}`);
   },
 
   /**
@@ -28,7 +28,7 @@ const professionalTitleApi = {
   createProfessionalTitle(
     data: Partial<ProfessionalTitle>
   ): Promise<ApiResponse<ProfessionalTitle>> {
-    return request.post('/api/hr/professional-titles', data);
+    return request.post('/api/240/hr/professional-titles', data);
   },
 
   /**
@@ -38,14 +38,14 @@ const professionalTitleApi = {
     titleId: string,
     data: Partial<ProfessionalTitle>
   ): Promise<ApiResponse<ProfessionalTitle>> {
-    return request.put(`/api/hr/professional-titles/${titleId}`, data);
+    return request.put(`/api/240/hr/professional-titles/${titleId}`, data);
   },
 
   /**
    * 删除职称
    */
   deleteProfessionalTitle(titleId: string): Promise<ApiResponse<void>> {
-    return request.delete(`/api/hr/professional-titles/${titleId}`);
+    return request.delete(`/api/240/hr/professional-titles/${titleId}`);
   },
 };
 

@@ -10,7 +10,7 @@ const jobRankApi = {
    * @returns 职级列表
    */
   getJobRankList() {
-    return request.get<JobRank[]>('/api/hr/job-ranks');
+    return request.get<JobRank[]>('/api/240/hr/job-ranks');
   },
 
   /**
@@ -19,7 +19,7 @@ const jobRankApi = {
    * @returns 职级详情
    */
   getJobRankById(rankId: string) {
-    return request.get<JobRank>(`/api/hr/job-ranks/${rankId}`);
+    return request.get<JobRank>(`/api/240/hr/job-ranks/${rankId}`);
   },
 
   /**
@@ -28,7 +28,7 @@ const jobRankApi = {
    * @returns 新增结果
    */
   createJobRank(data: Partial<JobRank>) {
-    return request.post<string>('/api/hr/job-ranks', data);
+    return request.post<string>('/api/240/hr/job-ranks', data);
   },
 
   /**
@@ -38,7 +38,7 @@ const jobRankApi = {
    * @returns 更新结果
    */
   updateJobRank(rankId: string, data: Partial<JobRank>) {
-    return request.put<boolean>(`/api/hr/job-ranks/${rankId}`, data);
+    return request.put<boolean>(`/api/240/hr/job-ranks/${rankId}`, data);
   },
 
   /**
@@ -47,7 +47,7 @@ const jobRankApi = {
    * @returns 删除结果
    */
   deleteJobRank(rankId: string) {
-    return request.delete<boolean>(`/api/hr/job-ranks/${rankId}`);
+    return request.delete<boolean>(`/api/240/hr/job-ranks/${rankId}`);
   },
 };
 

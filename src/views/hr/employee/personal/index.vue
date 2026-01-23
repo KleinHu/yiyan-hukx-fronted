@@ -391,41 +391,50 @@
                   />
                 </a-card>
 
-                <!-- 授课与培训 (只读展示) -->
+                <!-- 授课认证 -->
                 <a-card :bordered="false" class="form-block">
                   <template #title>
                     <div class="block-title">
-                      <icon-file /> 授课认证与认定
+                      <icon-file /> 授课认证
                       <a-badge
-                        v-if="teachingCertCount + teachingRecordCount > 0"
-                        :count="teachingCertCount + teachingRecordCount"
+                        v-if="teachingCertCount > 0"
+                        :count="teachingCertCount"
                         :overflow-count="99"
                         :offset="[8, 0]"
                       />
                     </div>
                   </template>
-                  <a-tabs type="capsule" size="small">
-                    <a-tab-pane key="cert" title="授课认证">
-                      <EmployeeTeachingCertList
-                        v-if="formData.userCode"
-                        ref="teachingCertListRef"
-                        :user-code="formData.userCode"
-                        :columns="2"
-                        hide-header
-                        readonly
+                  <EmployeeTeachingCertList
+                    v-if="formData.userCode"
+                    ref="teachingCertListRef"
+                    :user-code="formData.userCode"
+                    :columns="2"
+                    hide-header
+                    readonly
+                  />
+                </a-card>
+
+                <!-- 授课认定 -->
+                <a-card :bordered="false" class="form-block">
+                  <template #title>
+                    <div class="block-title">
+                      <icon-check-circle /> 授课认定
+                      <a-badge
+                        v-if="teachingRecordCount > 0"
+                        :count="teachingRecordCount"
+                        :overflow-count="99"
+                        :offset="[8, 0]"
                       />
-                    </a-tab-pane>
-                    <a-tab-pane key="record" title="授课认定">
-                      <EmployeeTeachingRecordList
-                        v-if="formData.userCode"
-                        ref="teachingRecordListRef"
-                        :user-code="formData.userCode"
-                        :columns="2"
-                        hide-header
-                        readonly
-                      />
-                    </a-tab-pane>
-                  </a-tabs>
+                    </div>
+                  </template>
+                  <EmployeeTeachingRecordList
+                    v-if="formData.userCode"
+                    ref="teachingRecordListRef"
+                    :user-code="formData.userCode"
+                    :columns="2"
+                    hide-header
+                    readonly
+                  />
                 </a-card>
 
                 <a-card :bordered="false" class="form-block">

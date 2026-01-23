@@ -22,22 +22,30 @@
           >
             <DataItem border-color="#ff7d00" :title="item.courseName">
               <template #extra>
-                <a-tag v-if="item.courseType === 1" size="small" color="blue"
-                  >技能</a-tag
-                >
                 <a-tag
-                  v-else-if="item.courseType === 2"
+                  v-if="item.courseTypeName"
                   size="small"
-                  color="orange"
-                  >管理</a-tag
+                  :color="
+                    item.courseType === 1
+                      ? 'blue'
+                      : item.courseType === 2
+                      ? 'orange'
+                      : item.courseType === 3
+                      ? 'green'
+                      : 'gray'
+                  "
                 >
-                <a-tag
-                  v-else-if="item.courseType === 3"
-                  size="small"
-                  color="green"
-                  >技术</a-tag
-                >
+                  {{ item.courseTypeName }}
+                </a-tag>
                 <span v-else>-</span>
+              </template>
+              <template #description>
+                <div v-if="item.remark" class="item-details">
+                  <span class="detail-item">
+                    <icon-info-circle />
+                    备注：{{ item.remark }}
+                  </span>
+                </div>
               </template>
               <template v-if="!readonly" #action>
                 <a-space :size="4" direction="vertical">
@@ -353,6 +361,25 @@
       :deep(.arco-col) {
         padding: 0 8px;
         margin-bottom: 16px;
+      }
+    }
+
+    .item-details {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #86909c;
+
+      .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        .arco-icon {
+          font-size: 12px;
+        }
       }
     }
   }

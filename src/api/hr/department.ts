@@ -10,7 +10,7 @@ const departmentApi = {
    * @returns 部门树数据
    */
   getDepartmentTree() {
-    return request.get<DepartmentTreeNode[]>('/api/hr/department/tree');
+    return request.get<DepartmentTreeNode[]>('/api/240/hr/department/tree');
   },
 
   /**
@@ -19,7 +19,9 @@ const departmentApi = {
    * @returns 子树数据
    */
   getSubDepartmentTree(deptId: string) {
-    return request.get<DepartmentTreeNode>(`/api/hr/department/tree/${deptId}`);
+    return request.get<DepartmentTreeNode>(
+      `/api/240/hr/department/tree/${deptId}`
+    );
   },
 
   /**
@@ -27,7 +29,7 @@ const departmentApi = {
    * @returns 部门列表
    */
   getDepartmentList() {
-    return request.get<Department[]>('/api/hr/department/list');
+    return request.get<Department[]>('/api/240/hr/department/list');
   },
 
   /**
@@ -36,7 +38,7 @@ const departmentApi = {
    */
   getDepartmentTreeWithStats() {
     return request.get<DepartmentTreeNode[]>(
-      '/api/hr/department/tree/with-stats'
+      '/api/240/hr/department/tree/with-stats'
     );
   },
 
@@ -46,7 +48,7 @@ const departmentApi = {
    * @returns 部门详情
    */
   getDepartmentById(deptId: string) {
-    return request.get<Department>(`/api/hr/department/${deptId}`);
+    return request.get<Department>(`/api/240/hr/department/${deptId}`);
   },
 
   /**
@@ -55,7 +57,7 @@ const departmentApi = {
    * @returns 新增结果
    */
   createDepartment(data: Partial<Department>) {
-    return request.post<boolean>('/api/hr/department', data);
+    return request.post<boolean>('/api/240/hr/department', data);
   },
 
   /**
@@ -65,7 +67,7 @@ const departmentApi = {
    * @returns 更新结果
    */
   updateDepartment(deptId: string, data: Partial<Department>) {
-    return request.put<boolean>(`/api/hr/department/${deptId}`, data);
+    return request.put<boolean>(`/api/240/hr/department/${deptId}`, data);
   },
 
   /**
@@ -74,7 +76,7 @@ const departmentApi = {
    * @returns 删除结果
    */
   deleteDepartment(deptId: string) {
-    return request.delete<boolean>(`/api/hr/department/${deptId}`);
+    return request.delete<boolean>(`/api/240/hr/department/${deptId}`);
   },
 
   /**
@@ -84,7 +86,7 @@ const departmentApi = {
    * @returns 科室及员工信息
    */
   getDepartmentEmployees(deptId: string, includeChildren = true) {
-    return request.get<any>(`/api/hr/department/${deptId}/employees`, {
+    return request.get<any>(`/api/240/hr/department/${deptId}/employees`, {
       params: { includeChildren },
     });
   },
@@ -95,7 +97,9 @@ const departmentApi = {
    * @returns 子科室ID列表
    */
   getAllChildDeptIds(deptId: string) {
-    return request.get<string[]>(`/api/hr/department/${deptId}/children-ids`);
+    return request.get<string[]>(
+      `/api/240/hr/department/${deptId}/children-ids`
+    );
   },
 
   /**
@@ -104,7 +108,7 @@ const departmentApi = {
    * @returns 科室路径信息
    */
   getDepartmentPath(deptId: string) {
-    return request.get<any>(`/api/hr/department/${deptId}/path`);
+    return request.get<any>(`/api/240/hr/department/${deptId}/path`);
   },
 
   /**
@@ -113,7 +117,7 @@ const departmentApi = {
    * @returns 科室路径信息
    */
   getDepartmentPathByUserCode(userCode: string) {
-    return request.get<any>(`/api/hr/department/path/by-user/${userCode}`);
+    return request.get<any>(`/api/240/hr/department/path/by-user/${userCode}`);
   },
 };
 

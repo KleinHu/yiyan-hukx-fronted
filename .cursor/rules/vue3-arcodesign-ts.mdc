@@ -1,13 +1,14 @@
 ---
 name: yiyan-rules
 description: 易研项目开发规范 - Vue3 + TypeScript + Arco Design + Spring Boot 微服务架构
-
 ---
 
 ## 项目概述
 
 ### 1. yiyan-hukx-fronted（微服务前端 Demo - 主要开发项目）
+
 **技术栈版本：**
+
 - Vue 3.2.40 + TypeScript 4.8.4 + Vite 3.2.5
 - Arco Design Vue 2.40.0
 - Pinia 2.0.23（状态管理）
@@ -22,6 +23,7 @@ description: 易研项目开发规范 - Vue3 + TypeScript + Arco Design + Spring
   - vue-konva 3.2.6 + konva 10.0.12（图形绘制）
 
 **项目结构：**
+
 ```
 src/
 ├── api/              # API 接口（按模块组织：bpm、system、form、hr等）
@@ -43,6 +45,7 @@ config/               # Vite 配置文件
 ```
 
 **开发配置：**
+
 - 开发服务器：`localhost`，自动打开浏览器
 - 代理配置（vite.config.dev.ts）：
   - JPAAS 服务：`http://hukx-Macmini.local:9900`
@@ -56,14 +59,18 @@ config/               # Vite 配置文件
     - `/api/hr` → 人事服务
 
 **代码规范工具：**
+
 - ESLint 8.25.0（Airbnb 规范 + TypeScript + Vue3）
 - Prettier 2.7.1（代码格式化）
 - Stylelint 14.13.0（样式格式化）
 - Husky 8.0.1 + lint-staged 13.0.3（Git 提交前检查）
 - Commitlint 17.1.2（Commit 消息规范，遵循 Conventional Commits）
 - vue-tsc 1.0.14（TypeScript 类型检查）
+
 ### 2. yiyan-hukx-fronted-locally（单机版前端 Demo - 参考项目）
+
 **技术栈：**
+
 - 与微服务版本基本相同
 - **额外包含：**
   - `@vue-office/docx` 1.6.3（Word 文档预览）
@@ -73,11 +80,13 @@ config/               # Vite 配置文件
   - `konva` 10.0.12 + `vue-konva` 3.2.6（图形绘制）
 
 **项目规模：**
+
 - 视图文件：约 240 个（vs 微服务版 107 个）
 - API 文件：约 90 个（vs 微服务版约 40 个）
 - 组件：约 82 个（vs 微服务版约 50 个）
 
 **特殊内容：**
+
 - `guide/` 目录：开发文档和指南
 - `各类功能后端/` 目录：包含多个业务模块的后端代码和文档
   - 人事功能
@@ -89,7 +98,9 @@ config/               # Vite 配置文件
   - 部门计划
 
 ### 3. my-dxe-backed（微服务后端项目）
+
 **项目结构（Maven 多模块）：**
+
 ```
 my-dxe-backed/
 ├── yiyan-demo-api/      # API 接口定义模块（DTO、VO、接口定义）
@@ -99,6 +110,7 @@ my-dxe-backed/
 ```
 
 **技术栈版本：**
+
 - Spring Boot 2.3.12.RELEASE
 - Spring Cloud Hoxton.SR12
 - Spring Cloud Alibaba 2.2.5.RELEASE
@@ -107,6 +119,7 @@ my-dxe-backed/
 - Java 1.8
 
 **微服务组件：**
+
 - 服务注册与发现：Nacos
 - 配置中心：Nacos
 - API 网关：Spring Cloud Gateway
@@ -117,6 +130,7 @@ my-dxe-backed/
 - 定时任务：XXL-Job
 
 **中间件配置：**
+
 - 数据库：MySQL 5.7（`hukx-Macmini.local:3307`，数据库：`240_hr`）
 - Redis：`hukx-Macmini.local:6379`（密码：yiyan）
 - RabbitMQ：`hukx-Macmini.local:5672`（用户名/密码：yiyan，虚拟主机：/yiyan）
@@ -124,6 +138,7 @@ my-dxe-backed/
 - MinIO：`hukx-Macmini.local:9000`（存储服务）
 
 **后端代码结构（yiyan-demo-biz）：**
+
 ```
 src/main/java/com/cac/demo/
 ├── controller/     # 控制器层（REST API）
@@ -136,9 +151,11 @@ src/main/java/com/cac/demo/
 ```
 
 **业务模块示例：**
+
 - `operatelog`：操作日志功能（包含完整的 Controller、Service、DAO、Entity、VO、Convert 等）
 
 **项目关联关系：**
+
 - 前端与后端对接：
   - 前端 OAuth：`appKey: hukx-client` / `appSecret: hukx`
   - 后端 OAuth 配置：`client-id: hukx-client`，`client-secret: hukx`
@@ -148,7 +165,6 @@ src/main/java/com/cac/demo/
   - **参考实现项目**：`yiyan-hukx-fronted-locally`（功能更全，可作为参考）
   - **后端服务**：`my-dxe-backed`
 
-
 ---
 
 ## 前端编码要求
@@ -156,7 +172,9 @@ src/main/java/com/cac/demo/
 ### 1. API 请求规范
 
 #### 1.1 请求工具说明
+
 项目封装了多个请求工具，位于 `@/utils/request/` 目录：
+
 - **`request.ts`**：易研平台标准请求工具（返回格式：`{ success, message, code, data }`，成功判断：`code === 200`）
 - **`requestJpaas.ts`**：JPAAS 平台请求工具（返回格式：`{ success, message, code, data, result }`，成功判断：`success ?? true`）
 - **`security.ts`**：安全相关请求工具（不添加 token）
@@ -164,6 +182,7 @@ src/main/java/com/cac/demo/
 - **`requestFileHeaders.ts`**：带自定义请求头的文件请求工具
 
 **重要规则：**
+
 - ✅ **必须使用**项目封装的请求工具，不要自己二次封装 axios
 - ❌ **禁止直接使用** axios
 - ✅ 根据后端服务选择对应的请求工具：
@@ -172,6 +191,7 @@ src/main/java/com/cac/demo/
   - 文件相关 → 使用 `requestForFile` 或 `requestFileHeaders`
 
 #### 1.2 API 接口文件规范
+
 - 所有 API 接口文件参考 `@/api/bpm` 目录下的标准接口写法
 - API 文件按业务模块组织：`src/api/{模块名}/`
 - 每个 API 文件导出具体的接口函数，函数必须有 JSDoc 注释
@@ -192,66 +212,633 @@ export function getDepartmentTree() {
 ```
 
 **在组件中使用 API：**
+
 ```typescript
-  /**
-   * 获取部门树数据
-   */
-  const getDepartmentTree = async () => {
-    try {
-      loading.value = true;
-      const { data } = await departmentApi.getDepartmentTree();
-      departmentList.value = data || [];
-      // 默认展开第一层
-      expandedKeys.value = data
-        .map((dept) => dept.deptId)
-        .filter((id): id is string => !!id);
-    } catch (error) {
-      console.error('获取部门数据失败:', error);
-      Message.error('获取部门数据失败');
-    } finally {
-      loading.value = false;
-    }
-  };
+/**
+ * 获取部门树数据
+ */
+const getDepartmentTree = async () => {
+  try {
+    loading.value = true;
+    const { data } = await departmentApi.getDepartmentTree();
+    departmentList.value = data || [];
+    // 默认展开第一层
+    expandedKeys.value = data
+      .map((dept) => dept.deptId)
+      .filter((id): id is string => !!id);
+  } catch (error) {
+    console.error('获取部门数据失败:', error);
+    Message.error('获取部门数据失败');
+  } finally {
+    loading.value = false;
+  }
+};
 ```
 
 #### 1.3 分页接口规范
+
 - 分页请求参数：`pageNum`（当前页）、`pageSize`（每页数量）
 - 分页响应格式：`{ list: T[], total: number }`
 - 列表数据在 `list` 属性中，总数在 `total` 属性中
 
 **分页获取代码示例：**
+
 ```typescript
-    /**
+/**
  * 分页获取员工列表
-   */
-  const fetchData = async () => {
-    try {
-      loading.value = true;
-      const { data } = await employeeApi.getEmployeePage({
-        pageNum: pagination.current,
-        pageSize: pagination.pageSize,
-        userName: searchKey.value,
-        departmentId: filterDept.value,
-      });
-      employeeList.value = data.list || [];
-      pagination.total = data.total;
+ */
+const fetchData = async () => {
+  try {
+    loading.value = true;
+    const { data } = await employeeApi.getEmployeePage({
+      pageNum: pagination.current,
+      pageSize: pagination.pageSize,
+      userName: searchKey.value,
+      departmentId: filterDept.value,
+    });
+    employeeList.value = data.list || [];
+    pagination.total = data.total;
   } catch (error) {
     console.error('获取员工列表失败:', error);
     Message.error('获取员工列表失败');
+  } finally {
+    loading.value = false;
+  }
+};
+```
+
+### 2. 开发模式规范（三层架构）
+
+项目采用**三层架构**开发模式，实现关注点分离和代码复用：
+
+```
+API 层（src/api/）      → 定义接口函数，封装 HTTP 请求
+    ↓
+Hooks 层（src/hooks/）  → 封装业务逻辑，管理状态和副作用
+    ↓
+组件层（src/components/、src/views/） → 使用数据，渲染 UI
+```
+
+#### 2.1 API 层（接口定义层）
+
+**职责：**
+
+- ✅ 定义和封装所有 HTTP 请求接口
+- ✅ 处理请求参数和响应数据的类型定义
+- ✅ 不包含业务逻辑，只负责数据请求
+
+**规范：**
+
+- API 文件按业务模块组织：`src/api/{模块名}/`
+- 每个接口函数必须有 JSDoc 注释
+- 接口函数返回类型为 `Promise<HttpResponse<T>>`
+- 使用项目封装的请求工具（`request`、`requestJpaas` 等）
+
+**API 层示例：**
+
+```typescript
+// src/api/hr/employee.ts
+import request from '@/utils/request/request';
+import type { Employee, EmployeePageParams, PageResult } from '@/types';
+
+/**
+ * 分页获取员工列表
+ * @param params 查询参数
+ * @returns 分页结果
+ */
+export function getEmployeePage(params: EmployeePageParams) {
+  return request.get<PageResult<Employee>>('/api/hr/employee/page', { params });
+}
+
+/**
+ * 根据 ID 获取员工详情
+ * @param id 员工 ID
+ * @returns 员工信息
+ */
+export function getEmployeeById(id: string) {
+  return request.get<Employee>(`/api/hr/employee/${id}`);
+}
+
+/**
+ * 新增员工
+ * @param data 员工信息
+ * @returns 新增结果
+ */
+export function createEmployee(data: Partial<Employee>) {
+  return request.post<Employee>('/api/hr/employee', data);
+}
+
+/**
+ * 更新员工信息
+ * @param id 员工 ID
+ * @param data 员工信息
+ * @returns 更新结果
+ */
+export function updateEmployee(id: string, data: Partial<Employee>) {
+  return request.put<Employee>(`/api/hr/employee/${id}`, data);
+}
+
+/**
+ * 删除员工
+ * @param id 员工 ID
+ * @returns 删除结果
+ */
+export function deleteEmployee(id: string) {
+  return request.delete(`/api/hr/employee/${id}`);
+}
+```
+
+#### 2.2 Hooks 层（业务逻辑层）
+
+**职责：**
+
+- ✅ 封装可复用的业务逻辑
+- ✅ 管理组件状态（loading、data、error 等）
+- ✅ 处理副作用（API 调用、错误处理、消息提示等）
+- ✅ 提供响应式数据和方法给组件使用
+
+**规范：**
+
+- Hooks 文件放在 `src/hooks/` 目录
+- 命名规范：`use{功能名}.ts`（如 `useEmployeeList.ts`）
+- 使用 Composition API，返回响应式状态和方法
+- 所有 Hooks 必须提供完整的 TypeScript 类型定义
+- 错误处理统一在 Hooks 层完成
+
+**Hooks 层示例：**
+
+```typescript
+// src/hooks/useEmployeeList.ts
+import { ref, type Ref } from 'vue';
+import { Message } from '@arco-design/web-vue';
+import * as employeeApi from '@/api/hr/employee';
+import type { Employee, EmployeePageParams, PageResult } from '@/types';
+
+/**
+ * 员工列表管理 Hook
+ * @param initialParams 初始查询参数
+ * @returns 员工列表相关的状态和方法
+ */
+export function useEmployeeList(initialParams?: Partial<EmployeePageParams>) {
+  // 状态定义
+  const loading = ref(false);
+  const employeeList = ref<Employee[]>([]);
+  const total = ref(0);
+  const searchParams = ref<EmployeePageParams>({
+    pageNum: 1,
+    pageSize: 10,
+    ...initialParams,
+  });
+
+  /**
+   * 获取员工列表
+   */
+  const fetchEmployeeList = async (): Promise<void> => {
+    try {
+      loading.value = true;
+      const { data } = await employeeApi.getEmployeePage(searchParams.value);
+      employeeList.value = data?.list || [];
+      total.value = data?.total || 0;
+    } catch (error) {
+      console.error('获取员工列表失败:', error);
+      Message.error('获取员工列表失败，请稍后重试');
+      employeeList.value = [];
+      total.value = 0;
     } finally {
       loading.value = false;
     }
   };
+
+  /**
+   * 刷新列表
+   */
+  const refresh = (): void => {
+    searchParams.value.pageNum = 1;
+    fetchEmployeeList();
+  };
+
+  /**
+   * 重置搜索条件
+   */
+  const resetSearch = (): void => {
+    searchParams.value = {
+      pageNum: 1,
+      pageSize: 10,
+      ...initialParams,
+    };
+    fetchEmployeeList();
+  };
+
+  /**
+   * 更新搜索参数
+   */
+  const updateSearchParams = (params: Partial<EmployeePageParams>): void => {
+    searchParams.value = {
+      ...searchParams.value,
+      ...params,
+      pageNum: 1, // 搜索时重置到第一页
+    };
+  };
+
+  /**
+   * 分页变化处理
+   */
+  const handlePageChange = (pageNum: number, pageSize: number): void => {
+    searchParams.value.pageNum = pageNum;
+    searchParams.value.pageSize = pageSize;
+    fetchEmployeeList();
+  };
+
+  // 初始化加载
+  fetchEmployeeList();
+
+  return {
+    // 状态
+    loading,
+    employeeList,
+    total,
+    searchParams,
+    // 方法
+    fetchEmployeeList,
+    refresh,
+    resetSearch,
+    updateSearchParams,
+    handlePageChange,
+  };
+}
 ```
 
-### 2. 组件开发规范
+**带详情管理的 Hooks 示例：**
+
+```typescript
+// src/hooks/useEmployeeDetail.ts
+import { ref } from 'vue';
+import { Message } from '@arco-design/web-vue';
+import * as employeeApi from '@/api/hr/employee';
+import type { Employee } from '@/types';
+
+/**
+ * 员工详情管理 Hook
+ * @returns 员工详情相关的状态和方法
+ */
+export function useEmployeeDetail() {
+  const loading = ref(false);
+  const employee = ref<Employee | null>(null);
+  const visible = ref(false);
+
+  /**
+   * 获取员工详情
+   * @param id 员工 ID
+   */
+  const fetchEmployeeDetail = async (id: string): Promise<void> => {
+    try {
+      loading.value = true;
+      const { data } = await employeeApi.getEmployeeById(id);
+      employee.value = data || null;
+    } catch (error) {
+      console.error('获取员工详情失败:', error);
+      Message.error('获取员工详情失败');
+      employee.value = null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
+   * 打开详情弹窗
+   * @param id 员工 ID
+   */
+  const openDetail = async (id: string): Promise<void> => {
+    visible.value = true;
+    await fetchEmployeeDetail(id);
+  };
+
+  /**
+   * 关闭详情弹窗
+   */
+  const closeDetail = (): void => {
+    visible.value = false;
+    employee.value = null;
+  };
+
+  /**
+   * 保存员工信息
+   * @param data 员工信息
+   */
+  const saveEmployee = async (data: Partial<Employee>): Promise<boolean> => {
+    try {
+      loading.value = true;
+      if (data.id) {
+        await employeeApi.updateEmployee(data.id, data);
+        Message.success('更新成功');
+      } else {
+        await employeeApi.createEmployee(data);
+        Message.success('新增成功');
+      }
+      return true;
+    } catch (error) {
+      console.error('保存员工信息失败:', error);
+      Message.error('保存失败，请稍后重试');
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
+   * 删除员工
+   * @param id 员工 ID
+   */
+  const deleteEmployee = async (id: string): Promise<boolean> => {
+    try {
+      loading.value = true;
+      await employeeApi.deleteEmployee(id);
+      Message.success('删除成功');
+      return true;
+    } catch (error) {
+      console.error('删除员工失败:', error);
+      Message.error('删除失败，请稍后重试');
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  return {
+    // 状态
+    loading,
+    employee,
+    visible,
+    // 方法
+    fetchEmployeeDetail,
+    openDetail,
+    closeDetail,
+    saveEmployee,
+    deleteEmployee,
+  };
+}
+```
+
+#### 2.3 组件层（视图展示层）
+
+**职责：**
+
+- ✅ 使用 Hooks 提供的状态和方法
+- ✅ 处理用户交互（点击、输入等）
+- ✅ 渲染 UI 界面
+- ✅ 不包含业务逻辑，只负责展示和交互
+
+**规范：**
+
+- 组件中直接使用 Hooks，不直接调用 API
+- 组件只处理 UI 相关的逻辑（如弹窗显示、表单验证等）
+- 业务逻辑全部封装在 Hooks 中
+
+**组件层示例：**
+
+```vue
+<!-- src/views/hr/employee/manage/index.vue -->
+<template>
+  <div class="employee-manage">
+    <!-- 搜索区域 -->
+    <a-card class="search-card">
+      <a-form :model="searchForm" layout="inline">
+        <a-form-item label="员工姓名">
+          <a-input
+            v-model="searchForm.userName"
+            placeholder="请输入员工姓名"
+            allow-clear
+          />
+        </a-form-item>
+        <a-form-item label="部门">
+          <a-tree-select
+            v-model="searchForm.departmentId"
+            :data="departmentTree"
+            placeholder="请选择部门"
+            allow-clear
+          />
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" @click="handleSearch">
+            <template #icon>
+              <icon-search />
+            </template>
+            搜索
+          </a-button>
+          <a-button @click="handleReset">
+            <template #icon>
+              <icon-refresh />
+            </template>
+            重置
+          </a-button>
+        </a-form-item>
+      </a-form>
+    </a-card>
+
+    <!-- 操作栏 -->
+    <a-card class="table-card">
+      <template #title>
+        <a-space>
+          <span>员工列表</span>
+        </a-space>
+      </template>
+      <template #extra>
+        <a-button type="primary" @click="handleAdd">
+          <template #icon>
+            <icon-plus />
+          </template>
+          新增员工
+        </a-button>
+      </template>
+
+      <!-- 表格 -->
+      <a-table
+        :columns="columns"
+        :data="employeeList"
+        :loading="loading"
+        :pagination="{
+          current: searchParams.pageNum,
+          pageSize: searchParams.pageSize,
+          total,
+          showTotal: true,
+        }"
+        @page-change="handlePageChange"
+      >
+        <template #action="{ record }">
+          <a-button type="text" @click="handleEdit(record.id)">
+            <template #icon>
+              <icon-edit />
+            </template>
+            编辑
+          </a-button>
+          <a-popconfirm
+            content="确定要删除该员工吗？"
+            @ok="handleDelete(record.id)"
+          >
+            <a-button type="text" status="danger">
+              <template #icon>
+                <icon-delete />
+              </template>
+              删除
+            </a-button>
+          </a-popconfirm>
+        </template>
+      </a-table>
+    </a-card>
+
+    <!-- 新增/编辑弹窗 -->
+    <EmployeeFormModal
+      v-model:visible="formVisible"
+      :employee-id="currentEmployeeId"
+      @success="handleFormSuccess"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+  import { ref, computed } from 'vue';
+  import { Message } from '@arco-design/web-vue';
+  import { useEmployeeList } from '@/hooks/useEmployeeList';
+  import { useEmployeeDetail } from '@/hooks/useEmployeeDetail';
+  import { useDepartmentTree } from '@/hooks/useDepartmentTree';
+  import EmployeeFormModal from './components/employee-form-modal.vue';
+  import type { Employee } from '@/types';
+
+  // 使用 Hooks
+  const {
+    loading,
+    employeeList,
+    total,
+    searchParams,
+    refresh,
+    resetSearch,
+    updateSearchParams,
+    handlePageChange,
+  } = useEmployeeList();
+
+  const { deleteEmployee } = useEmployeeDetail();
+  const { departmentTree } = useDepartmentTree();
+
+  // 组件内部状态（UI 相关）
+  const searchForm = ref({
+    userName: '',
+    departmentId: undefined as string | undefined,
+  });
+
+  const formVisible = ref(false);
+  const currentEmployeeId = ref<string | undefined>(undefined);
+
+  // 搜索处理
+  const handleSearch = (): void => {
+    updateSearchParams({
+      userName: searchForm.value.userName || undefined,
+      departmentId: searchForm.value.departmentId,
+    });
+    refresh();
+  };
+
+  // 重置搜索
+  const handleReset = (): void => {
+    searchForm.value = {
+      userName: '',
+      departmentId: undefined,
+    };
+    resetSearch();
+  };
+
+  // 新增
+  const handleAdd = (): void => {
+    currentEmployeeId.value = undefined;
+    formVisible.value = true;
+  };
+
+  // 编辑
+  const handleEdit = (id: string): void => {
+    currentEmployeeId.value = id;
+    formVisible.value = true;
+  };
+
+  // 删除
+  const handleDelete = async (id: string): Promise<void> => {
+    const success = await deleteEmployee(id);
+    if (success) {
+      refresh();
+    }
+  };
+
+  // 表单提交成功
+  const handleFormSuccess = (): void => {
+    formVisible.value = false;
+    refresh();
+  };
+
+  // 表格列定义
+  const columns = [
+    {
+      title: '员工编号',
+      dataIndex: 'userCode',
+    },
+    {
+      title: '员工姓名',
+      dataIndex: 'userName',
+    },
+    {
+      title: '部门',
+      dataIndex: 'departmentName',
+    },
+    {
+      title: '手机号',
+      dataIndex: 'mobile',
+    },
+    {
+      title: '操作',
+      slotName: 'action',
+      width: 150,
+    },
+  ];
+</script>
+
+<style scoped lang="less">
+  .employee-manage {
+    .search-card {
+      margin-bottom: 16px;
+    }
+  }
+</style>
+```
+
+#### 2.4 开发模式总结
+
+**三层架构的优势：**
+
+- ✅ **关注点分离**：API 层专注请求，Hooks 层专注逻辑，组件层专注展示
+- ✅ **代码复用**：Hooks 可在多个组件中复用
+- ✅ **易于测试**：每层职责单一，便于单元测试
+- ✅ **易于维护**：修改业务逻辑只需修改 Hooks，不影响组件
+
+**开发流程：**
+
+1. **定义 API**：在 `src/api/` 中定义接口函数
+2. **封装 Hooks**：在 `src/hooks/` 中封装业务逻辑
+3. **使用组件**：在组件中引入 Hooks，使用其提供的状态和方法
+
+**注意事项：**
+
+- ❌ **禁止**在组件中直接调用 API
+- ❌ **禁止**在 API 层包含业务逻辑
+- ❌ **禁止**在组件中处理复杂的业务逻辑
+- ✅ **必须**通过 Hooks 层连接 API 和组件
+
+### 3. 组件开发规范
 
 #### 2.1 Arco Design 组件使用
+
 - ✅ 所有 Arco Design 的图标已全局注册，**无需二次引入**，直接使用即可
 - ✅ 组件使用 `<script setup lang="ts">` 语法
 - ✅ 使用 Composition API，避免 Options API
 
 **图标使用示例：**
+
 ```vue
 <template>
   <icon-plus />
@@ -261,12 +848,14 @@ export function getDepartmentTree() {
 ```
 
 #### 2.2 TypeScript 类型定义
+
 - ✅ 所有组件 props、emits 必须提供完整的 TypeScript 类型注解
 - ✅ 禁止使用 `any` 类型（ESLint 配置允许，但应尽量避免）
 - ✅ 使用类型守卫（Type Guards）进行类型判断
 - ✅ 接口类型定义放在 `src/types/` 或与组件同级的 `types.ts` 文件中
 
 **类型定义示例：**
+
 ```typescript
 // types.ts
 export interface Employee {
@@ -282,15 +871,17 @@ import type { Employee } from '@/types';
 const employee = ref<Employee | null>(null);
 ```
 
-### 3. ESLint 代码规范
+### 4. ESLint 代码规范
 
 #### 3.1 语法规范
+
 - ✅ **禁止使用** `++` 和 `--`，使用 `+= 1` 和 `-= 1` 代替
 - ✅ 使用 `const` 优先于 `let`，避免使用 `var`
 - ✅ 函数必须有明确的返回类型
 - ✅ 未使用的变量使用 `_` 前缀（如 `_unusedVar`）
 
 **示例：**
+
 ```typescript
 // ❌ 错误
 let count = 0;
@@ -304,26 +895,29 @@ count -= 1;
 ```
 
 #### 3.2 Vue 组件规范
+
 - ✅ 组件名使用 PascalCase（多词组件名）
 - ✅ Props 定义使用 `defineProps<T>()` 泛型语法
 - ✅ Emits 定义使用 `defineEmits<T>()` 泛型语法
 - ✅ 禁止使用 `$emit` 字符串形式
 - ✅ 禁止使用 `$parent`、`$children`、全局事件总线
 
-### 4. 组件通信规范
+### 5. 组件通信规范
 
 #### 4.1 父子组件通信
+
 - ✅ 父子通信**仅使用** `defineProps` 和 `defineEmits`，且必须提供完整的 TypeScript 类型注解
 - ❌ **禁止使用** `$emit` 字符串、`$parent`、`$children`、全局事件总线
 
 **Props 和 Emits 定义示例：**
+
 ```typescript
-  // Child.vue
+// Child.vue
 interface Props {
   /** 双向绑定的值 */
-    modelValue?: string;
+  modelValue?: string;
   /** 是否禁用 */
-    disabled?: boolean;
+  disabled?: boolean;
   /** 标题 */
   title?: string;
 }
@@ -335,9 +929,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 interface Emits {
   /** 更新 modelValue */
-    (e: 'update:modelValue', value: string): void;
+  (e: 'update:modelValue', value: string): void;
   /** 确认事件 */
-    (e: 'confirm'): void;
+  (e: 'confirm'): void;
   /** 取消事件 */
   (e: 'cancel'): void;
 }
@@ -346,68 +940,68 @@ const emit = defineEmits<Emits>();
 ```
 
 #### 4.2 v-model 双向绑定
+
 - ✅ 所有可被表单使用的组件**必须支持** `v-model`（即 `modelValue` prop + `update:modelValue` emit）
 - ✅ 永远不要直接修改 props；状态变更必须通过 emit 通知父组件
 
 **v-model 实现示例：**
+
 ```vue
-      <!-- Parent.vue -->
+<!-- Parent.vue -->
 <template>
-    <CustomInput v-model="inputValue" />
+  <CustomInput v-model="inputValue" />
 </template>
 
 <script setup lang="ts">
-const inputValue = ref('');
+  const inputValue = ref('');
 </script>
 
-    <!-- CustomInput.vue -->
+<!-- CustomInput.vue -->
 <template>
-  <a-input
-    :model-value="props.modelValue"
-    @input="handleChange"
-  />
+  <a-input :model-value="props.modelValue" @input="handleChange" />
 </template>
 
-    <script setup lang="ts">
-    const props = defineProps<{ modelValue: string }>();
-    const emit = defineEmits<{ (e: 'update:modelValue', val: string): void }>();
+<script setup lang="ts">
+  const props = defineProps<{ modelValue: string }>();
+  const emit = defineEmits<{ (e: 'update:modelValue', val: string): void }>();
 
-    const handleChange = (val: string) => {
-      emit('update:modelValue', val);
-    };
-    </script>
-  ```
+  const handleChange = (val: string) => {
+    emit('update:modelValue', val);
+  };
+</script>
+```
 
 #### 4.3 多 prop 双向绑定
+
 - ✅ Vue 3 支持多个 `v-model:xxx`，用于多个值的双向绑定
 
 **多 v-model 示例：**
+
 ```vue
 <!-- Parent.vue -->
-<DatePicker
-  v-model:start="startDate"
-  v-model:end="endDate"
-/>
+<DatePicker v-model:start="startDate" v-model:end="endDate" />
 
 <!-- DatePicker.vue -->
 <script setup lang="ts">
-const props = defineProps<{
-  start?: string;
-  end?: string;
-}>();
+  const props = defineProps<{
+    start?: string;
+    end?: string;
+  }>();
 
-const emit = defineEmits<{
-  (e: 'update:start', value: string): void;
-  (e: 'update:end', value: string): void;
-}>();
+  const emit = defineEmits<{
+    (e: 'update:start', value: string): void;
+    (e: 'update:end', value: string): void;
+  }>();
 </script>
 ```
 
 #### 4.4 复杂对象更新
+
 - ✅ emit 整个新对象（避免 mutate prop）
 - ✅ 使用展开运算符创建新对象
 
 **复杂对象更新示例：**
+
 ```typescript
 const handleConfigChange = (newField: string) => {
   emit('update:config', {
@@ -418,25 +1012,29 @@ const handleConfigChange = (newField: string) => {
 ```
 
 #### 4.5 事件命名规范
+
 - ✅ 事件命名采用**驼峰命名**方式（camelCase）
 - ❌ **不要使用**短横线命名（kebab-case）
 
 **事件命名示例：**
+
 ```typescript
 // ✅ 正确
-    const handleToggleEnabled = (config: ImportConfigVO, enabled: boolean) => {
-    emit('toggleEnabled', config, enabled);
-  };
+const handleToggleEnabled = (config: ImportConfigVO, enabled: boolean) => {
+  emit('toggleEnabled', config, enabled);
+};
 
 // ❌ 错误
 emit('toggle-enabled', config, enabled);
 ```
 
 #### 4.6 跨组件状态管理
+
 - ✅ **业务状态**使用 Pinia 管理（放在 `src/store/modules/`）
 - ✅ **UI 上下文**（如 Form 禁用状态）可使用 `provide/inject`，但 key 必须为 Symbol，且提供类型定义
 
 **Pinia Store 示例：**
+
 ```typescript
 // src/store/modules/user/index.ts
 import { defineStore } from 'pinia';
@@ -467,6 +1065,7 @@ export const useUserStore = defineStore('user', {
 ```
 
 **provide/inject 示例：**
+
 ```typescript
 // Parent.vue
 import { provide, InjectionKey } from 'vue';
@@ -488,18 +1087,21 @@ const formContext = inject(formContextKey);
 ```
 
 #### 4.7 Arco Design 组件对齐
+
 - ✅ 自定义组件行为需与 Arco 官方组件保持一致
 - ✅ 事件命名遵循 Arco 规范：`change`、`input`、`update:value` 等
 - ✅ 表单集成方式与 Arco 组件保持一致
 
-### 5. 路由配置规范
+### 6. 路由配置规范
 
 #### 5.1 路由文件组织
+
 - 路由配置按模块组织在 `src/router/routes/modules/` 目录
 - 基础路由定义在 `src/router/routes/base.ts`
 - 路由类型定义在 `src/router/routes/types.ts`
 
 #### 5.2 路由定义规范
+
 ```typescript
 // src/router/routes/modules/hr.ts
 import type { AppRouteRecordRaw } from '../types';
@@ -519,13 +1121,15 @@ const routes: AppRouteRecordRaw[] = [
 export default routes;
 ```
 
-### 6. 状态管理规范（Pinia）
+### 7. 状态管理规范（Pinia）
 
 #### 6.1 Store 模块化
+
 - Store 按功能模块划分，放在 `src/store/modules/` 目录
 - 每个模块包含：`index.ts`（Store 定义）、`types.ts`（类型定义）
 
 #### 6.2 Store 定义规范
+
 ```typescript
 // src/store/modules/app/index.ts
 import { defineStore } from 'pinia';
@@ -548,28 +1152,132 @@ export const useAppStore = defineStore('app', {
 });
 ```
 
-### 7. 样式规范
+### 8. 样式规范
 
-#### 7.1 CSS 预处理器
+#### 8.1 CSS 预处理器
+
 - ✅ 使用 Less 作为 CSS 预处理器
 - ✅ 样式文件使用 `.less` 扩展名
 
-#### 7.2 样式作用域
+#### 8.2 样式作用域
+
 - ✅ 组件样式使用 `<style scoped lang="less">`
 - ✅ 全局样式放在 `src/assets/style/` 目录
 
-#### 7.3 样式命名规范
+#### 8.3 样式命名规范
+
 - ✅ 使用 BEM 命名规范或语义化命名
 - ✅ 类名使用 kebab-case
 
-### 8. 错误处理规范
+#### 8.4 组件复用规范
 
-#### 8.1 API 错误处理
+- ✅ **优先使用** Arco Design 官方提供的组件，不要重复造轮子
+- ✅ 在实现自定义组件前，先查阅 [Arco Design Vue 官方文档](https://arco.design/vue/docs/start)，确认是否有现成的组件可用
+- ❌ **禁止**自定义实现 Arco Design 已提供的组件功能
+
+**常用 Arco Design 组件示例：**
+
+**滚动条组件：**
+
+```vue
+<!-- ✅ 正确：使用 Arco Design 的 scrollbar 组件 -->
+<template>
+  <a-scrollbar style="height: 400px">
+    <div class="content">
+      <!-- 内容 -->
+    </div>
+  </a-scrollbar>
+</template>
+
+<!-- ❌ 错误：自定义滚动条样式 -->
+<template>
+  <div class="custom-scrollbar" style="height: 400px; overflow-y: auto">
+    <div class="content">
+      <!-- 内容 -->
+    </div>
+  </div>
+</template>
+<style scoped>
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  /* ... 更多自定义滚动条样式 */
+</style>
+```
+
+**其他常用组件：**
+
+- **滚动条**：使用 `<a-scrollbar>` 替代自定义滚动条样式
+- **空状态**：使用 `<a-empty>` 替代自定义空状态展示
+- **加载中**：使用 `<a-spin>` 替代自定义加载动画
+- **骨架屏**：使用 `<a-skeleton>` 替代自定义骨架屏
+- **回到顶部**：使用 `<a-back-top>` 替代自定义回到顶部按钮
+- **锚点导航**：使用 `<a-anchor>` 替代自定义锚点
+- **分割面板**：使用 `<a-split>` 替代自定义分割布局
+- **水印**：使用 `<a-watermark>` 替代自定义水印
+- **图片预览**：使用 `<a-image>` 的预览功能替代自定义图片预览
+- **代码高亮**：使用 `<a-typography>` 的代码块功能
+
+**组件选择原则：**
+
+1. **优先原则**：Arco Design 组件 > 第三方组件库 > 自定义组件
+2. **功能覆盖**：如果 Arco Design 组件能满足 80% 的需求，优先使用并扩展，而不是完全自定义
+3. **样式定制**：通过 Arco Design 的主题定制和 CSS 变量来调整样式，而不是重写组件
+4. **文档查阅**：在实现前先查阅官方文档，确认是否有更合适的组件
+
+**示例：使用 Arco Design 组件替代自定义实现**
+
+```vue
+<!-- ✅ 正确：使用 Arco Design 组件 -->
+<template>
+  <div class="page-container">
+    <!-- 使用 a-scrollbar 替代自定义滚动条 -->
+    <a-scrollbar style="height: 500px">
+      <div class="content">
+        <a-empty v-if="!dataList.length" description="暂无数据" />
+        <a-list v-else :data="dataList">
+          <template #item="{ item }">
+            <a-list-item>
+              <a-skeleton v-if="loading" :loading="loading" />
+              <div v-else>{{ item.name }}</div>
+            </a-list-item>
+          </template>
+        </a-list>
+      </div>
+    </a-scrollbar>
+
+    <!-- 使用 a-back-top 替代自定义回到顶部 -->
+    <a-back-top :visible-height="100" />
+  </div>
+</template>
+
+<!-- ❌ 错误：完全自定义实现 -->
+<template>
+  <div class="page-container">
+    <div class="custom-scroll" style="height: 500px; overflow-y: auto">
+      <div v-if="!dataList.length" class="empty-state">暂无数据</div>
+      <ul v-else>
+        <li v-for="item in dataList" :key="item.id">
+          <div v-if="loading" class="skeleton">加载中...</div>
+          <div v-else>{{ item.name }}</div>
+        </li>
+      </ul>
+    </div>
+    <div class="back-top" @click="scrollToTop">回到顶部</div>
+  </div>
+</template>
+```
+
+### 9. 错误处理规范
+
+#### 9.1 API 错误处理
+
 - ✅ 所有 API 调用必须使用 `try-catch` 包裹
 - ✅ 错误信息使用 `Message.error()` 提示用户
 - ✅ 关键错误记录到 `console.error`
 
 **错误处理示例：**
+
 ```typescript
 const fetchData = async () => {
   try {
@@ -585,13 +1293,15 @@ const fetchData = async () => {
 };
 ```
 
-### 9. 代码注释规范
+### 10. 代码注释规范
 
-#### 9.1 函数注释
+#### 10.1 函数注释
+
 - ✅ 所有函数必须有 JSDoc 注释
 - ✅ 注释包含：功能描述、参数说明、返回值说明
 
 **函数注释示例：**
+
 ```typescript
 /**
  * 获取部门树数据
@@ -603,16 +1313,19 @@ const getDepartmentTree = async (): Promise<Department[]> => {
 };
 ```
 
-#### 9.2 组件注释
+#### 10.2 组件注释
+
 - ✅ 复杂组件在 `<script setup>` 顶部添加功能说明注释
 
-### 10. Git 提交规范
+### 11. Git 提交规范
 
-#### 10.1 Commit Message 格式
+#### 11.1 Commit Message 格式
+
 - ✅ 遵循 Conventional Commits 规范
 - ✅ 格式：`<type>(<scope>): <subject>`
 
 **Commit 类型：**
+
 - `feat`: 新功能
 - `fix`: 修复 bug
 - `docs`: 文档更新
@@ -623,6 +1336,7 @@ const getDepartmentTree = async (): Promise<Department[]> => {
 - `chore`: 构建/工具链相关
 
 **示例：**
+
 ```
 feat(hr): 新增员工管理功能
 fix(bpm): 修复流程审批bug
@@ -636,6 +1350,7 @@ docs(readme): 更新项目说明文档
 ### 1. 代码结构规范
 
 #### 1.1 模块组织
+
 - Controller 层：`controller/{模块名}/`
 - Service 层：`service/{模块名}/`
 - DAO 层：`dao/{模块名}/`
@@ -644,6 +1359,7 @@ docs(readme): 更新项目说明文档
 - Convert 层：`convert/{模块名}/`
 
 #### 1.2 命名规范
+
 - Controller：`{模块名}Controller.java`
 - Service：`{模块名}Service.java`（接口）、`{模块名}ServiceImpl.java`（实现）
 - DAO：`{模块名}Mapper.java`
@@ -654,10 +1370,12 @@ docs(readme): 更新项目说明文档
 ### 2. 数据库规范
 
 #### 2.1 MySQL 版本
+
 - ✅ 使用 MySQL 5.7 版本
 - ✅ SQL 语句必须符合 MySQL 5.7 语法规范
 
 #### 2.2 字段命名
+
 - ✅ 使用下划线命名（snake_case）
 - ✅ 主键统一使用 `id`
 - ✅ 创建时间：`create_time`，更新时间：`update_time`
@@ -666,11 +1384,13 @@ docs(readme): 更新项目说明文档
 ### 3. 接口规范
 
 #### 3.1 RESTful API
+
 - ✅ 遵循 RESTful 规范
 - ✅ GET：查询，POST：新增，PUT：更新，DELETE：删除
 - ✅ 统一返回格式：`{ success: boolean, message: string, code: number, data: T }`
 
 #### 3.2 分页接口
+
 - ✅ 请求参数：`pageNum`（当前页）、`pageSize`（每页数量）
 - ✅ 返回格式：`{ list: T[], total: number }`
 
@@ -679,6 +1399,7 @@ docs(readme): 更新项目说明文档
 ## 总结
 
 **生成的代码必须：**
+
 - ✅ 类型安全、无 `any`（尽量）
 - ✅ 符合 Composition API 风格
 - ✅ 遵循 ESLint 规范
