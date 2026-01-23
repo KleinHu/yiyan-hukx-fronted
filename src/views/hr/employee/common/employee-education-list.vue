@@ -142,7 +142,7 @@
   import { Message, Modal } from '@arco-design/web-vue';
   import type { Education } from '@/api/hr/types';
   import { DegreeOptions } from '@/api/hr/types';
-  import employeeRecordApi from '@/api/hr/records';
+  import useEmployeeRecords from '@/hooks/hr/employee-records';
   import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
@@ -160,14 +160,28 @@
     columns: 1,
   });
 
+  // 使用 Hook（仅在编辑模式下使用）
+  const employeeRecords = props.isNewMode
+    ? null
+    : useEmployeeRecords(props.userCode);
+
   // 响应式数据
-  const loading = ref(false);
-  const educationList = ref<Education[]>([]);
+  const loading = computed(() =>
+    props.isNewMode ? false : employeeRecords?.loading.value || false
+  );
+  const educationList = computed(() =>
+    props.isNewMode
+      ? localEducationList.value
+      : employeeRecords?.educationList.value || []
+  );
   const modalVisible = ref(false);
   const isEdit = ref(false);
   const currentId = ref<number | null>(null);
   const currentIndex = ref<number>(-1); // 用于新建模式下的编辑
   let tempIdCounter = 0; // 新建模式下的临时ID
+
+  // 新建模式下的本地数据
+  const localEducationList = ref<Education[]>([]);
 
   // 表单数据
   const formData = reactive<Partial<Education>>({
@@ -190,19 +204,9 @@
   };
 
   // 获取教育经历列表（仅编辑模式调用）
-  const getEducationList = async () => {
-    if (!props.userCode || props.isNewMode) return;
-    try {
-      loading.value = true;
-      const response = await employeeRecordApi.getEducationList(props.userCode);
-      if (response.code === 200) {
-        educationList.value = response.data || [];
-      }
-    } catch (error) {
-      Message.error('获取教育经历失败');
-    } finally {
-      loading.value = false;
-    }
+  const getEducationList = async (): Promise<void> => {
+    if (!props.userCode || props.isNewMode || !employeeRecords) return;
+    await employeeRecords.fetchEducationList();
   };
 
   const showAddModal = () => {
@@ -228,22 +232,13 @@
       onOk: async () => {
         if (props.isNewMode) {
           // 新建模式：直接从列表移除
-          educationList.value.splice(rowIndex, 1);
+          localEducationList.value.splice(rowIndex, 1);
           Message.success('删除成功');
-        } else {
-          // 编辑模式：调用API删除
-          try {
-            if (record.id) {
-              const response = await employeeRecordApi.deleteEducation(
-                record.id
-              );
-              if (response.code === 200) {
-                Message.success('删除成功');
-                getEducationList();
-              }
-            }
-          } catch (error) {
-            Message.error('删除失败');
+        } else if (record.id && employeeRecords) {
+          // 编辑模式：调用Hook删除
+          const success = await employeeRecords.deleteEducation(record.id);
+          if (success) {
+            await getEducationList();
           }
         }
       },
@@ -267,11 +262,13 @@
       // 新建模式：数据暂存本地
       if (isEdit.value && currentIndex.value >= 0) {
         // 编辑本地数据
-        Object.assign(educationList.value[currentIndex.value], { ...formData });
+        Object.assign(localEducationList.value[currentIndex.value], {
+          ...formData,
+        });
       } else {
         // 新增本地数据
         tempIdCounter -= 1;
-        educationList.value.push({
+        localEducationList.value.push({
           ...formData,
           id: tempIdCounter,
         } as Education);
@@ -279,31 +276,22 @@
       Message.success(isEdit.value ? '修改成功' : '新增成功');
       modalVisible.value = false;
     } else {
-      // 编辑模式：调用API
-      try {
-        if (isEdit.value && currentId.value) {
-          const response = await employeeRecordApi.updateEducation(
-            currentId.value,
-            formData
-          );
-          if (response.code === 200) {
-            Message.success('更新成功');
-            modalVisible.value = false;
-            getEducationList();
-          }
-        } else {
-          const response = await employeeRecordApi.createEducation(
-            props.userCode,
-            formData
-          );
-          if (response.code === 200) {
-            Message.success('新增成功');
-            modalVisible.value = false;
-            getEducationList();
-          }
-        }
-      } catch (error) {
-        Message.error('操作失败');
+      // 编辑模式：调用Hook
+      if (!employeeRecords) return;
+
+      let success = false;
+      if (isEdit.value && currentId.value) {
+        success = await employeeRecords.updateEducation(
+          currentId.value,
+          formData
+        );
+      } else {
+        success = await employeeRecords.createEducation(formData);
+      }
+
+      if (success) {
+        modalVisible.value = false;
+        await getEducationList();
       }
     }
   };
@@ -318,13 +306,14 @@
    * @param userCode 员工工号
    */
   const saveAllData = async (userCode: string): Promise<boolean> => {
-    if (educationList.value.length === 0) return true;
+    if (localEducationList.value.length === 0) return true;
 
     try {
+      const records = useEmployeeRecords(userCode);
       await Promise.all(
-        educationList.value.map((item) => {
+        localEducationList.value.map((item) => {
           const { id: _id, ...data } = item; // 移除临时ID
-          return employeeRecordApi.createEducation(userCode, data);
+          return records.createEducation(data);
         })
       );
       return true;
@@ -344,7 +333,7 @@
    * 清空本地数据
    */
   const clearData = () => {
-    educationList.value = [];
+    localEducationList.value = [];
   };
 
   // 监听 isNewMode 变化，切换到编辑模式时加载数据

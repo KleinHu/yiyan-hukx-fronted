@@ -27,18 +27,28 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue';
-  import { Message } from '@arco-design/web-vue';
-  import importConfigApi, { type ImportConfigVO } from '@/api/hr/import-config';
+  import { ref, computed } from 'vue';
+  import useImportConfig from '@/hooks/hr/import-config';
+  import { type ImportConfigVO } from '@/api/hr/import-config';
   import PageHeader from './components/PageHeader.vue';
   import FilterSection from './components/FilterSection.vue';
   import ConfigTable from './components/ConfigTable.vue';
   import EditDrawer from './components/EditDrawer.vue';
 
+  // 使用 Hook
+  const {
+    loading,
+    configList,
+    categories,
+    fetchConfigList,
+    fetchCategories,
+    createConfig,
+    updateConfig,
+    deleteConfig,
+    toggleEnabled,
+  } = useImportConfig({ autoLoad: false });
+
   // 数据
-  const loading = ref(false);
-  const configs = ref<ImportConfigVO[]>([]);
-  const categories = ref<string[]>([]);
   const filterValue = ref<{ category?: string; keyword?: string }>({});
 
   // 编辑
@@ -74,7 +84,7 @@
 
   // 过滤后的配置
   const filteredConfigs = computed(() => {
-    return configs.value.filter((config) => {
+    return configList.value.filter((config) => {
       const matchCategory =
         !filterValue.value.category ||
         config.category === filterValue.value.category;
@@ -91,28 +101,12 @@
   });
 
   // 加载数据
-  const loadConfigs = async () => {
-    loading.value = true;
-    try {
-      const res = await importConfigApi.getAllConfigs();
-      configs.value = res.data || [];
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('加载配置失败:', error);
-      Message.error('加载配置失败');
-    } finally {
-      loading.value = false;
-    }
+  const loadConfigs = async (): Promise<void> => {
+    await fetchConfigList();
   };
 
-  const loadCategories = async () => {
-    try {
-      const res = await importConfigApi.getCategories();
-      categories.value = res.data || [];
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('加载分类失败:', error);
-    }
+  const loadCategories = async (): Promise<void> => {
+    await fetchCategories();
   };
 
   // 新增
@@ -145,49 +139,42 @@
   };
 
   // 保存
-  const handleSave = async (formData: ImportConfigVO) => {
-    try {
-      if (formData.id) {
-        await importConfigApi.update(formData.id, formData);
-        Message.success('更新成功');
-      } else {
-        await importConfigApi.create(formData);
-        Message.success('创建成功');
-      }
+  const handleSave = async (formData: ImportConfigVO): Promise<void> => {
+    let success = false;
+    if (formData.id) {
+      success = await updateConfig(formData.id, formData);
+    } else {
+      success = await createConfig(formData);
+    }
 
+    if (success) {
       handleCloseModal();
-      loadConfigs();
-    } catch (error: any) {
-      Message.error(error.message || '保存失败');
+      await loadConfigs();
     }
   };
 
   // 删除
-  const handleDelete = async (id: number) => {
-    try {
-      await importConfigApi.delete(id);
-      Message.success('删除成功');
-      loadConfigs();
-    } catch (error) {
-      Message.error('删除失败');
+  const handleDelete = async (id: number): Promise<void> => {
+    const success = await deleteConfig(id);
+    if (success) {
+      await loadConfigs();
     }
   };
 
   // 切换启用状态
-  const handleToggleEnabled = async (id: number, enabled: boolean) => {
-    try {
-      await importConfigApi.toggleEnabled(id, enabled);
-      Message.success(enabled ? '已启用' : '已禁用');
-      loadConfigs();
-    } catch (error) {
-      Message.error('操作失败');
+  const handleToggleEnabled = async (
+    id: number,
+    enabled: boolean
+  ): Promise<void> => {
+    const success = await toggleEnabled(id, enabled);
+    if (success) {
+      await loadConfigs();
     }
   };
 
-  onMounted(() => {
-    loadConfigs();
-    loadCategories();
-  });
+  // 初始化
+  loadConfigs();
+  loadCategories();
 </script>
 
 <style scoped lang="less">

@@ -772,7 +772,7 @@
     Honor,
   } from '@/api/hr/types';
   import useEmployeeList from '@/hooks/hr/employee';
-  import employeeRecordApi from '@/api/hr/records';
+  import useEmployeeRecords from '@/hooks/hr/employee-records';
 
   const props = defineProps<{
     visible: boolean;
@@ -791,13 +791,17 @@
 
   const drawerVisible = ref(props.visible);
   const employeeData = ref<Employee | null>(null);
+
+  // 使用 Hook 获取员工记录数据（需要根据userCode动态创建）
+  let employeeRecords: ReturnType<typeof useEmployeeRecords> | null = null;
+
+  // 从Hook获取的数据（使用ref包装，避免响应式问题）
   const positionData = ref<Position | null>(null);
   const educationList = ref<Education[]>([]);
   const skillList = ref<SkillCertification[]>([]);
   const contactList = ref<EmergencyContact[]>([]);
   const performanceList = ref<Performance[]>([]);
   const rankHistoryList = ref<RankHistory[]>([]);
-  // 新增数据列表
   const mentorList = ref<EmployeeMentor[]>([]);
   const teachingCertList = ref<TeachingCertification[]>([]);
   const teachingRecordList = ref<TeachingRecord[]>([]);
@@ -833,12 +837,12 @@
       contactList.value = [];
       performanceList.value = [];
       rankHistoryList.value = [];
-      // 清空新增数据
       mentorList.value = [];
       teachingCertList.value = [];
       teachingRecordList.value = [];
       secondaryEduList.value = [];
       honorList.value = [];
+      employeeRecords = null;
     }
   });
 
@@ -854,161 +858,50 @@
       const employee = await fetchEmployeeDetailFromHook(userCode);
       employeeData.value = employee;
 
-      // 获取扩展数据（这些 API 调用不依赖 loading 状态，可以异步加载）
-      await Promise.all([
-        fetchPosition(userCode),
-        fetchEducation(userCode),
-        fetchSkill(userCode),
-        fetchContact(userCode),
-        fetchPerformance(userCode),
-        fetchRankHistory(userCode),
-        // 新增数据获取
-        fetchMentors(userCode),
-        fetchTeachingCerts(userCode),
-        fetchTeachingRecords(userCode),
-        fetchSecondaryEducations(userCode),
-        fetchHonors(userCode),
-      ]);
-    } catch {
-      // 获取员工详情失败，静默处理
-    }
-  };
+      // 获取扩展数据（使用Hook）
+      if (userCode) {
+        employeeRecords = useEmployeeRecords(userCode);
+        await Promise.all([
+          employeeRecords.fetchPosition(),
+          employeeRecords.fetchEducationList(),
+          employeeRecords.fetchSkillList(),
+          employeeRecords.fetchEmergencyContactList(),
+          employeeRecords.fetchPerformanceList(),
+          employeeRecords.fetchRankHistoryList(),
+          employeeRecords.fetchMentorList(),
+          employeeRecords.fetchTeachingCertList(),
+          employeeRecords.fetchTeachingRecordList(),
+          employeeRecords.fetchSecondaryEducationList(),
+          employeeRecords.fetchHonorList(),
+        ]);
 
-  const fetchPosition = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getPosition(userCode);
-      if (res.code === 200 && res.data) {
-        positionData.value = res.data;
-      }
-    } catch {
-      // 获取岗位信息失败，静默处理
-    }
-  };
-
-  const fetchEducation = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getEducationList(userCode);
-      if (res.code === 200 && res.data) {
-        educationList.value = res.data;
-      }
-    } catch {
-      // 获取教育背景失败，静默处理
-    }
-  };
-
-  const fetchSkill = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getSkillList(userCode);
-      if (res.code === 200 && res.data) {
-        skillList.value = res.data;
-      }
-    } catch {
-      // 获取技能鉴定失败，静默处理
-    }
-  };
-
-  const fetchContact = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getEmergencyContactList(userCode);
-      if (res.code === 200 && res.data) {
-        contactList.value = res.data;
-      }
-    } catch {
-      // 获取紧急联系人失败，静默处理
-    }
-  };
-
-  const fetchPerformance = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getPerformanceList(userCode);
-      if (res.code === 200 && res.data) {
-        // 按年度倒序排列
-        performanceList.value = (res.data || []).sort(
+        // 同步数据到本地ref（用于展示）
+        positionData.value = employeeRecords.position.value;
+        educationList.value = employeeRecords.educationList.value;
+        skillList.value = employeeRecords.skillList.value;
+        contactList.value = employeeRecords.emergencyContactList.value;
+        const perfList = employeeRecords.performanceList.value || [];
+        performanceList.value = [...perfList].sort(
           (a, b) => (b.year || 0) - (a.year || 0)
         );
-      }
-    } catch {
-      // 获取绩效记录失败，静默处理
-    }
-  };
-
-  const fetchRankHistory = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getRankHistoryList(userCode);
-      if (res.code === 200 && res.data) {
-        // 按生效日期倒序排列
-        rankHistoryList.value = (res.data || []).sort(
+        const rankList = employeeRecords.rankHistoryList.value || [];
+        rankHistoryList.value = [...rankList].sort(
           (a, b) =>
             new Date(b.effectiveDate).getTime() -
             new Date(a.effectiveDate).getTime()
         );
-      }
-    } catch {
-      // 获取职级历史失败，静默处理
-    }
-  };
-
-  // 获取岗位师傅（带教关系）
-  const fetchMentors = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getMentorList(userCode);
-      if (res.code === 200 && res.data) {
-        mentorList.value = res.data;
-      }
-    } catch {
-      // 静默处理
-    }
-  };
-
-  // 获取授课认证
-  const fetchTeachingCerts = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getTeachingCertList(userCode);
-      if (res.code === 200 && res.data) {
-        teachingCertList.value = res.data;
-      }
-    } catch {
-      // 静默处理
-    }
-  };
-
-  // 获取授课认定
-  const fetchTeachingRecords = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getTeachingRecordList(userCode);
-      if (res.code === 200 && res.data) {
-        teachingRecordList.value = res.data;
-      }
-    } catch {
-      // 静默处理
-    }
-  };
-
-  // 获取二级教育
-  const fetchSecondaryEducations = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getSecondaryEducationList(userCode);
-      if (res.code === 200 && res.data) {
-        secondaryEduList.value = res.data;
-      }
-    } catch {
-      // 静默处理
-    }
-  };
-
-  // 获取荣誉情况
-  const fetchHonors = async (userCode: string) => {
-    try {
-      const res = await employeeRecordApi.getHonorList(userCode);
-      if (res.code === 200 && res.data) {
-        // 按奖励日期倒序
-        honorList.value = (res.data || []).sort(
+        mentorList.value = employeeRecords.mentorList.value;
+        teachingCertList.value = employeeRecords.teachingCertList.value;
+        teachingRecordList.value = employeeRecords.teachingRecordList.value;
+        secondaryEduList.value = employeeRecords.secondaryEducationList.value;
+        const honorListData = employeeRecords.honorList.value || [];
+        honorList.value = [...honorListData].sort(
           (a, b) =>
             new Date(b.rewardDate).getTime() - new Date(a.rewardDate).getTime()
         );
       }
     } catch {
-      // 静默处理
+      // 获取员工详情失败，静默处理
     }
   };
 

@@ -100,7 +100,7 @@
   import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { EmergencyContact } from '@/api/hr/types';
-  import employeeRecordApi from '@/api/hr/records';
+  import useEmployeeRecords from '@/hooks/hr/employee-records';
   import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
@@ -118,15 +118,31 @@
     columns: 1,
   });
 
+  // 使用 Hook（仅在编辑模式下使用）
+  const employeeRecords = props.isNewMode
+    ? null
+    : useEmployeeRecords(props.userCode);
+
   // 状态数据
-  const loading = ref(false);
   const submitLoading = ref(false);
   const modalVisible = ref(false);
   const isEdit = ref(false);
   const currentId = ref<number | null>(null);
   const currentIndex = ref<number>(-1);
-  const contactList = ref<EmergencyContact[]>([]);
   let tempIdCounter = 0;
+
+  // 新建模式下的本地数据
+  const localContactList = ref<EmergencyContact[]>([]);
+
+  // 计算属性
+  const loading = computed(() =>
+    props.isNewMode ? false : employeeRecords?.loading.value || false
+  );
+  const contactList = computed(() =>
+    props.isNewMode
+      ? localContactList.value
+      : employeeRecords?.emergencyContactList.value || []
+  );
 
   // 表单数据
   const formRef = ref();
@@ -142,21 +158,9 @@
     phone: [{ required: true, message: '请输入联系电话' }],
   };
 
-  const getContactList = async () => {
-    if (!props.userCode || props.isNewMode) return;
-    try {
-      loading.value = true;
-      const response = await employeeRecordApi.getEmergencyContactList(
-        props.userCode
-      );
-      if (response.code === 200) {
-        contactList.value = response.data || [];
-      }
-    } catch (error) {
-      Message.error('获取紧急联系人失败');
-    } finally {
-      loading.value = false;
-    }
+  const getContactList = async (): Promise<void> => {
+    if (!props.userCode || props.isNewMode || !employeeRecords) return;
+    await employeeRecords.fetchEmergencyContactList();
   };
 
   const showAddModal = () => {
@@ -184,21 +188,14 @@
       content: '确定要删除这位紧急联系人吗？',
       onOk: async () => {
         if (props.isNewMode) {
-          contactList.value.splice(rowIndex, 1);
+          localContactList.value.splice(rowIndex, 1);
           Message.success('删除成功');
-        } else {
-          try {
-            if (record.id) {
-              const response = await employeeRecordApi.deleteEmergencyContact(
-                record.id
-              );
-              if (response.code === 200) {
-                Message.success('删除成功');
-                getContactList();
-              }
-            }
-          } catch (error) {
-            Message.error('删除失败');
+        } else if (record.id && employeeRecords) {
+          const success = await employeeRecords.deleteEmergencyContact(
+            record.id
+          );
+          if (success) {
+            await getContactList();
           }
         }
       },
@@ -211,10 +208,12 @@
 
     if (props.isNewMode) {
       if (isEdit.value && currentIndex.value >= 0) {
-        Object.assign(contactList.value[currentIndex.value], { ...formData });
+        Object.assign(localContactList.value[currentIndex.value], {
+          ...formData,
+        });
       } else {
         tempIdCounter -= 1;
-        contactList.value.push({
+        localContactList.value.push({
           ...formData,
           id: tempIdCounter,
         } as EmergencyContact);
@@ -222,31 +221,24 @@
       Message.success(isEdit.value ? '修改成功' : '新增成功');
       modalVisible.value = false;
     } else {
+      if (!employeeRecords) return;
+
       try {
         submitLoading.value = true;
+        let success = false;
         if (isEdit.value && currentId.value) {
-          const response = await employeeRecordApi.updateEmergencyContact(
+          success = await employeeRecords.updateEmergencyContact(
             currentId.value,
             formData
           );
-          if (response.code === 200) {
-            Message.success('更新成功');
-            modalVisible.value = false;
-            getContactList();
-          }
         } else {
-          const response = await employeeRecordApi.createEmergencyContact(
-            props.userCode,
-            formData
-          );
-          if (response.code === 200) {
-            Message.success('新增成功');
-            modalVisible.value = false;
-            getContactList();
-          }
+          success = await employeeRecords.createEmergencyContact(formData);
         }
-      } catch (error) {
-        Message.error('操作失败');
+
+        if (success) {
+          modalVisible.value = false;
+          await getContactList();
+        }
       } finally {
         submitLoading.value = false;
       }
@@ -258,12 +250,13 @@
   };
 
   const saveAllData = async (userCode: string): Promise<boolean> => {
-    if (contactList.value.length === 0) return true;
+    if (localContactList.value.length === 0) return true;
     try {
+      const records = useEmployeeRecords(userCode);
       await Promise.all(
-        contactList.value.map((item) => {
+        localContactList.value.map((item) => {
           const { id: _id, ...data } = item;
-          return employeeRecordApi.createEmergencyContact(userCode, data);
+          return records.createEmergencyContact(data);
         })
       );
       return true;
@@ -272,9 +265,9 @@
     }
   };
 
-  const getLocalData = () => contactList.value;
-  const clearData = () => {
-    contactList.value = [];
+  const getLocalData = () => localContactList.value;
+  const clearData = (): void => {
+    localContactList.value = [];
   };
 
   watch(

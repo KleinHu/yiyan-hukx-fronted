@@ -166,7 +166,7 @@
   import { Message, Modal } from '@arco-design/web-vue';
   import type { TeachingCertification } from '@/api/hr/types';
   import { CertificationLevelOptions, CourseTypeOptions } from '@/api/hr/types';
-  import employeeRecordApi from '@/api/hr/records';
+  import useEmployeeRecords from '@/hooks/hr/employee-records';
   import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
@@ -184,15 +184,31 @@
     columns: 1,
   });
 
+  // 使用 Hook（仅在编辑模式下使用）
+  const employeeRecords = props.isNewMode
+    ? null
+    : useEmployeeRecords(props.userCode);
+
   // 状态数据
-  const loading = ref(false);
   const submitLoading = ref(false);
   const modalVisible = ref(false);
   const isEdit = ref(false);
   const currentId = ref<number | null>(null);
   const currentIndex = ref<number>(-1);
-  const certList = ref<TeachingCertification[]>([]);
   let tempIdCounter = 0;
+
+  // 新建模式下的本地数据
+  const localCertList = ref<TeachingCertification[]>([]);
+
+  // 计算属性
+  const loading = computed(() =>
+    props.isNewMode ? false : employeeRecords?.loading.value || false
+  );
+  const certList = computed(() =>
+    props.isNewMode
+      ? localCertList.value
+      : employeeRecords?.teachingCertList.value || []
+  );
 
   // 表单数据
   const formRef = ref();
@@ -209,21 +225,9 @@
     courseType: [{ required: true, message: '请选择授课类型' }],
   };
 
-  const getCertList = async () => {
-    if (!props.userCode || props.isNewMode) return;
-    try {
-      loading.value = true;
-      const response = await employeeRecordApi.getTeachingCertList(
-        props.userCode
-      );
-      if (response.code === 200) {
-        certList.value = response.data || [];
-      }
-    } catch (error) {
-      Message.error('获取授课认证失败');
-    } finally {
-      loading.value = false;
-    }
+  const getCertList = async (): Promise<void> => {
+    if (!props.userCode || props.isNewMode || !employeeRecords) return;
+    await employeeRecords.fetchTeachingCertList();
   };
 
   const resetFormData = () => {
@@ -257,21 +261,12 @@
       content: '确定要删除这条授课认证记录吗？',
       onOk: async () => {
         if (props.isNewMode) {
-          certList.value.splice(rowIndex, 1);
+          localCertList.value.splice(rowIndex, 1);
           Message.success('删除成功');
-        } else {
-          try {
-            if (record.id) {
-              const response = await employeeRecordApi.deleteTeachingCert(
-                record.id
-              );
-              if (response.code === 200) {
-                Message.success('删除成功');
-                getCertList();
-              }
-            }
-          } catch (error) {
-            Message.error('删除失败');
+        } else if (record.id && employeeRecords) {
+          const success = await employeeRecords.deleteTeachingCert(record.id);
+          if (success) {
+            await getCertList();
           }
         }
       },
@@ -284,10 +279,12 @@
 
     if (props.isNewMode) {
       if (isEdit.value && currentIndex.value >= 0) {
-        Object.assign(certList.value[currentIndex.value], { ...formData });
+        Object.assign(localCertList.value[currentIndex.value], {
+          ...formData,
+        });
       } else {
         tempIdCounter -= 1;
-        certList.value.push({
+        localCertList.value.push({
           ...formData,
           id: tempIdCounter,
         } as TeachingCertification);
@@ -295,31 +292,24 @@
       Message.success(isEdit.value ? '修改成功' : '新增成功');
       modalVisible.value = false;
     } else {
+      if (!employeeRecords) return;
+
       try {
         submitLoading.value = true;
+        let success = false;
         if (isEdit.value && currentId.value) {
-          const response = await employeeRecordApi.updateTeachingCert(
+          success = await employeeRecords.updateTeachingCert(
             currentId.value,
             formData
           );
-          if (response.code === 200) {
-            Message.success('更新成功');
-            modalVisible.value = false;
-            getCertList();
-          }
         } else {
-          const response = await employeeRecordApi.createTeachingCert(
-            props.userCode,
-            formData
-          );
-          if (response.code === 200) {
-            Message.success('新增成功');
-            modalVisible.value = false;
-            getCertList();
-          }
+          success = await employeeRecords.createTeachingCert(formData);
         }
-      } catch (error) {
-        Message.error('操作失败');
+
+        if (success) {
+          modalVisible.value = false;
+          await getCertList();
+        }
       } finally {
         submitLoading.value = false;
       }
@@ -331,12 +321,13 @@
   };
 
   const saveAllData = async (userCode: string): Promise<boolean> => {
-    if (certList.value.length === 0) return true;
+    if (localCertList.value.length === 0) return true;
     try {
+      const records = useEmployeeRecords(userCode);
       await Promise.all(
-        certList.value.map((item) => {
+        localCertList.value.map((item) => {
           const { id: _id, ...data } = item;
-          return employeeRecordApi.createTeachingCert(userCode, data);
+          return records.createTeachingCert(data);
         })
       );
       return true;
@@ -345,9 +336,9 @@
     }
   };
 
-  const getLocalData = () => certList.value;
-  const clearData = () => {
-    certList.value = [];
+  const getLocalData = () => localCertList.value;
+  const clearData = (): void => {
+    localCertList.value = [];
   };
 
   watch(

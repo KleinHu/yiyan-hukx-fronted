@@ -192,7 +192,7 @@
   import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { EmployeeMentor } from '@/api/hr/types';
-  import employeeRecordApi from '@/api/hr/records';
+  import useEmployeeRecords from '@/hooks/hr/employee-records';
   import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
@@ -214,15 +214,31 @@
     columns: 1,
   });
 
+  // 使用 Hook（仅在编辑模式下使用）
+  const employeeRecords = props.isNewMode
+    ? null
+    : useEmployeeRecords(props.userCode);
+
   // 状态数据
-  const loading = ref(false);
   const submitLoading = ref(false);
   const modalVisible = ref(false);
   const isEdit = ref(false);
   const currentId = ref<number | null>(null);
   const currentIndex = ref<number>(-1);
-  const mentorList = ref<EmployeeMentor[]>([]);
   let tempIdCounter = 0;
+
+  // 新建模式下的本地数据
+  const localMentorList = ref<EmployeeMentor[]>([]);
+
+  // 计算属性
+  const loading = computed(() =>
+    props.isNewMode ? false : employeeRecords?.loading.value || false
+  );
+  const mentorList = computed(() =>
+    props.isNewMode
+      ? localMentorList.value
+      : employeeRecords?.mentorList.value || []
+  );
 
   // 格式化日期
   const formatDate = (dateStr: string | undefined): string => {
@@ -265,19 +281,9 @@
     }
   };
 
-  const getMentorList = async () => {
-    if (!props.userCode || props.isNewMode) return;
-    try {
-      loading.value = true;
-      const response = await employeeRecordApi.getMentorList(props.userCode);
-      if (response.code === 200) {
-        mentorList.value = response.data || [];
-      }
-    } catch (error) {
-      Message.error('获取带教记录失败');
-    } finally {
-      loading.value = false;
-    }
+  const getMentorList = async (): Promise<void> => {
+    if (!props.userCode || props.isNewMode || !employeeRecords) return;
+    await employeeRecords.fetchMentorList();
   };
 
   const resetFormData = () => {
@@ -317,19 +323,12 @@
       content: '确定要删除这条带教记录吗？',
       onOk: async () => {
         if (props.isNewMode) {
-          mentorList.value.splice(rowIndex, 1);
+          localMentorList.value.splice(rowIndex, 1);
           Message.success('删除成功');
-        } else {
-          try {
-            if (record.id) {
-              const response = await employeeRecordApi.deleteMentor(record.id);
-              if (response.code === 200) {
-                Message.success('删除成功');
-                getMentorList();
-              }
-            }
-          } catch (error) {
-            Message.error('删除失败');
+        } else if (record.id && employeeRecords) {
+          const success = await employeeRecords.deleteMentor(record.id);
+          if (success) {
+            await getMentorList();
           }
         }
       },
@@ -349,10 +348,10 @@
 
     if (props.isNewMode) {
       if (isEdit.value && currentIndex.value >= 0) {
-        Object.assign(mentorList.value[currentIndex.value], submitData);
+        Object.assign(localMentorList.value[currentIndex.value], submitData);
       } else {
         tempIdCounter -= 1;
-        mentorList.value.push({
+        localMentorList.value.push({
           ...submitData,
           id: tempIdCounter,
         } as EmployeeMentor);
@@ -360,31 +359,24 @@
       Message.success(isEdit.value ? '修改成功' : '新增成功');
       modalVisible.value = false;
     } else {
+      if (!employeeRecords) return;
+
       try {
         submitLoading.value = true;
+        let success = false;
         if (isEdit.value && currentId.value) {
-          const response = await employeeRecordApi.updateMentor(
+          success = await employeeRecords.updateMentor(
             currentId.value,
             submitData
           );
-          if (response.code === 200) {
-            Message.success('更新成功');
-            modalVisible.value = false;
-            getMentorList();
-          }
         } else {
-          const response = await employeeRecordApi.createMentor(
-            props.userCode,
-            submitData
-          );
-          if (response.code === 200) {
-            Message.success('新增成功');
-            modalVisible.value = false;
-            getMentorList();
-          }
+          success = await employeeRecords.createMentor(submitData);
         }
-      } catch (error) {
-        Message.error('操作失败');
+
+        if (success) {
+          modalVisible.value = false;
+          await getMentorList();
+        }
       } finally {
         submitLoading.value = false;
       }
@@ -396,12 +388,13 @@
   };
 
   const saveAllData = async (userCode: string): Promise<boolean> => {
-    if (mentorList.value.length === 0) return true;
+    if (localMentorList.value.length === 0) return true;
     try {
+      const records = useEmployeeRecords(userCode);
       await Promise.all(
-        mentorList.value.map((item) => {
+        localMentorList.value.map((item) => {
           const { id: _id, ...data } = item;
-          return employeeRecordApi.createMentor(userCode, data);
+          return records.createMentor(data);
         })
       );
       return true;
@@ -410,9 +403,9 @@
     }
   };
 
-  const getLocalData = () => mentorList.value;
-  const clearData = () => {
-    mentorList.value = [];
+  const getLocalData = () => localMentorList.value;
+  const clearData = (): void => {
+    localMentorList.value = [];
   };
 
   watch(

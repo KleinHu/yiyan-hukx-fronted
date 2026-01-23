@@ -107,7 +107,7 @@
   import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { SkillCertification } from '@/api/hr/types';
-  import employeeRecordApi from '@/api/hr/records';
+  import useEmployeeRecords from '@/hooks/hr/employee-records';
   import DataItem from '@/components/data-item/index.vue';
 
   interface Props {
@@ -125,15 +125,31 @@
     columns: 1,
   });
 
+  // 使用 Hook（仅在编辑模式下使用）
+  const employeeRecords = props.isNewMode
+    ? null
+    : useEmployeeRecords(props.userCode);
+
   // 状态数据
-  const loading = ref(false);
   const submitLoading = ref(false);
   const modalVisible = ref(false);
   const isEdit = ref(false);
   const currentId = ref<number | null>(null);
   const currentIndex = ref<number>(-1);
-  const skillList = ref<SkillCertification[]>([]);
   let tempIdCounter = 0;
+
+  // 新建模式下的本地数据
+  const localSkillList = ref<SkillCertification[]>([]);
+
+  // 计算属性
+  const loading = computed(() =>
+    props.isNewMode ? false : employeeRecords?.loading.value || false
+  );
+  const skillList = computed(() =>
+    props.isNewMode
+      ? localSkillList.value
+      : employeeRecords?.skillList.value || []
+  );
 
   // 格式化日期
   const formatDate = (dateStr?: string) => {
@@ -175,19 +191,9 @@
     certificationDate: [{ required: true, message: '请选择鉴定日期' }],
   };
 
-  const getSkillList = async () => {
-    if (!props.userCode || props.isNewMode) return;
-    try {
-      loading.value = true;
-      const response = await employeeRecordApi.getSkillList(props.userCode);
-      if (response.code === 200) {
-        skillList.value = response.data || [];
-      }
-    } catch (error) {
-      Message.error('获取技能鉴定失败');
-    } finally {
-      loading.value = false;
-    }
+  const getSkillList = async (): Promise<void> => {
+    if (!props.userCode || props.isNewMode || !employeeRecords) return;
+    await employeeRecords.fetchSkillList();
   };
 
   const showAddModal = () => {
@@ -215,19 +221,12 @@
       content: '确定要删除这条技能鉴定记录吗？',
       onOk: async () => {
         if (props.isNewMode) {
-          skillList.value.splice(rowIndex, 1);
+          localSkillList.value.splice(rowIndex, 1);
           Message.success('删除成功');
-        } else {
-          try {
-            if (record.id) {
-              const response = await employeeRecordApi.deleteSkill(record.id);
-              if (response.code === 200) {
-                Message.success('删除成功');
-                getSkillList();
-              }
-            }
-          } catch (error) {
-            Message.error('删除失败');
+        } else if (record.id && employeeRecords) {
+          const success = await employeeRecords.deleteSkill(record.id);
+          if (success) {
+            await getSkillList();
           }
         }
       },
@@ -240,10 +239,12 @@
 
     if (props.isNewMode) {
       if (isEdit.value && currentIndex.value >= 0) {
-        Object.assign(skillList.value[currentIndex.value], { ...formData });
+        Object.assign(localSkillList.value[currentIndex.value], {
+          ...formData,
+        });
       } else {
         tempIdCounter -= 1;
-        skillList.value.push({
+        localSkillList.value.push({
           ...formData,
           id: tempIdCounter,
         } as SkillCertification);
@@ -251,31 +252,24 @@
       Message.success(isEdit.value ? '修改成功' : '新增成功');
       modalVisible.value = false;
     } else {
+      if (!employeeRecords) return;
+
       try {
         submitLoading.value = true;
+        let success = false;
         if (isEdit.value && currentId.value) {
-          const response = await employeeRecordApi.updateSkill(
+          success = await employeeRecords.updateSkill(
             currentId.value,
             formData
           );
-          if (response.code === 200) {
-            Message.success('更新成功');
-            modalVisible.value = false;
-            getSkillList();
-          }
         } else {
-          const response = await employeeRecordApi.createSkill(
-            props.userCode,
-            formData
-          );
-          if (response.code === 200) {
-            Message.success('新增成功');
-            modalVisible.value = false;
-            getSkillList();
-          }
+          success = await employeeRecords.createSkill(formData);
         }
-      } catch (error) {
-        Message.error('操作失败');
+
+        if (success) {
+          modalVisible.value = false;
+          await getSkillList();
+        }
       } finally {
         submitLoading.value = false;
       }
@@ -287,12 +281,13 @@
   };
 
   const saveAllData = async (userCode: string): Promise<boolean> => {
-    if (skillList.value.length === 0) return true;
+    if (localSkillList.value.length === 0) return true;
     try {
+      const records = useEmployeeRecords(userCode);
       await Promise.all(
-        skillList.value.map((item) => {
+        localSkillList.value.map((item) => {
           const { id: _id, ...data } = item;
-          return employeeRecordApi.createSkill(userCode, data);
+          return records.createSkill(data);
         })
       );
       return true;
@@ -301,9 +296,9 @@
     }
   };
 
-  const getLocalData = () => skillList.value;
-  const clearData = () => {
-    skillList.value = [];
+  const getLocalData = () => localSkillList.value;
+  const clearData = (): void => {
+    localSkillList.value = [];
   };
 
   watch(

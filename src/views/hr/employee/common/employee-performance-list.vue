@@ -135,7 +135,7 @@
   import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { Performance } from '@/api/hr/types';
-  import employeeRecordApi from '@/api/hr/records';
+  import useEmployeeRecords from '@/hooks/hr/employee-records';
 
   interface Props {
     userCode: string;
@@ -150,14 +150,30 @@
     isNewMode: false,
   });
 
+  // 使用 Hook（仅在编辑模式下使用）
+  const employeeRecords = props.isNewMode
+    ? null
+    : useEmployeeRecords(props.userCode);
+
   // 状态数据
-  const loading = ref(false);
   const submitLoading = ref(false);
   const modalVisible = ref(false);
   const isEdit = ref(false);
-  const performanceList = ref<Performance[]>([]);
   const currentIndex = ref<number>(-1);
   let tempIdCounter = 0;
+
+  // 新建模式下的本地数据
+  const localPerformanceList = ref<Performance[]>([]);
+
+  // 计算属性
+  const loading = computed(() =>
+    props.isNewMode ? false : employeeRecords?.loading.value || false
+  );
+  const performanceList = computed(() =>
+    props.isNewMode
+      ? localPerformanceList.value
+      : employeeRecords?.performanceList.value || []
+  );
 
   // 按年度倒序排列（最新的在前）
   const sortedPerformanceList = computed(() => {
@@ -184,21 +200,9 @@
     ],
   };
 
-  const getPerformanceList = async () => {
-    if (!props.userCode || props.isNewMode) return;
-    try {
-      loading.value = true;
-      const response = await employeeRecordApi.getPerformanceList(
-        props.userCode
-      );
-      if (response.code === 200) {
-        performanceList.value = response.data || [];
-      }
-    } catch (error) {
-      Message.error('获取绩效记录失败');
-    } finally {
-      loading.value = false;
-    }
+  const getPerformanceList = async (): Promise<void> => {
+    if (!props.userCode || props.isNewMode || !employeeRecords) return;
+    await employeeRecords.fetchPerformanceList();
   };
 
   const getRatingColor = (rating?: string) => {
@@ -242,22 +246,12 @@
       content: '确定要删除这条绩效记录吗？',
       onOk: async () => {
         if (props.isNewMode) {
-          performanceList.value.splice(rowIndex, 1);
+          localPerformanceList.value.splice(rowIndex, 1);
           Message.success('删除成功');
-        } else {
-          try {
-            if (record.year) {
-              const response = await employeeRecordApi.deletePerformance(
-                props.userCode,
-                record.year
-              );
-              if (response.code === 200) {
-                Message.success('删除成功');
-                getPerformanceList();
-              }
-            }
-          } catch (error) {
-            Message.error('删除失败');
+        } else if (record.year && employeeRecords) {
+          const success = await employeeRecords.deletePerformance(record.year);
+          if (success) {
+            await getPerformanceList();
           }
         }
       },
@@ -270,12 +264,12 @@
 
     if (props.isNewMode) {
       if (isEdit.value && currentIndex.value >= 0) {
-        Object.assign(performanceList.value[currentIndex.value], {
+        Object.assign(localPerformanceList.value[currentIndex.value], {
           ...formData,
         });
       } else {
         tempIdCounter -= 1;
-        performanceList.value.push({
+        localPerformanceList.value.push({
           ...formData,
           id: tempIdCounter,
         } as Performance);
@@ -283,19 +277,15 @@
       Message.success(isEdit.value ? '修改成功' : '新增成功');
       modalVisible.value = false;
     } else {
+      if (!employeeRecords) return;
+
       try {
         submitLoading.value = true;
-        const response = await employeeRecordApi.savePerformance(
-          props.userCode,
-          formData
-        );
-        if (response.code === 200) {
-          Message.success(isEdit.value ? '更新成功' : '新增成功');
+        const success = await employeeRecords.savePerformance(formData);
+        if (success) {
           modalVisible.value = false;
-          getPerformanceList();
+          await getPerformanceList();
         }
-      } catch (error) {
-        Message.error('操作失败');
       } finally {
         submitLoading.value = false;
       }
@@ -307,12 +297,11 @@
   };
 
   const saveAllData = async (userCode: string): Promise<boolean> => {
-    if (performanceList.value.length === 0) return true;
+    if (localPerformanceList.value.length === 0) return true;
     try {
+      const records = useEmployeeRecords(userCode);
       await Promise.all(
-        performanceList.value.map((item) =>
-          employeeRecordApi.savePerformance(userCode, item)
-        )
+        localPerformanceList.value.map((item) => records.savePerformance(item))
       );
       return true;
     } catch (error) {
@@ -320,9 +309,9 @@
     }
   };
 
-  const getLocalData = () => performanceList.value;
-  const clearData = () => {
-    performanceList.value = [];
+  const getLocalData = () => localPerformanceList.value;
+  const clearData = (): void => {
+    localPerformanceList.value = [];
   };
 
   watch(

@@ -321,8 +321,8 @@
   import { useRouter } from 'vue-router';
   import { Message, Modal } from '@arco-design/web-vue';
   import type { FormInstance } from '@arco-design/web-vue';
-  import officeApi from '@/api/hr/office';
-  import type { FloorConfig, Employee, OfficeArea } from '@/api/hr/types';
+  import useOffice from '@/hooks/hr/office';
+  import type { FloorConfig, Employee } from '@/api/hr/types';
   import { RoomType } from '@/api/hr/types';
   import OfficeCanvas from './components/office-canvas.vue';
   import EmployeeDetailDrawer from '../employee/common/employee-detail-drawer.vue';
@@ -347,16 +347,27 @@
   }
 
   const router = useRouter();
-  const loading = ref(false);
+
+  // 使用 Hook
+  const {
+    loading,
+    areaList,
+    currentFloorConfig: floorConfig,
+    employeesByFloor: employees,
+    fetchAreaList,
+    fetchFloorConfig,
+    fetchEmployeesByFloor,
+    saveFloorConfig,
+    deleteFloorConfig,
+  } = useOffice();
+
+  // 状态数据
   const treeLoading = ref(false);
   const currentFloor = ref<string>('');
-  const floorConfig = ref<FloorConfig | null>(null);
-  const employees = ref<Employee[]>([]);
   const highlightEmployeeId = ref<number | null>(null);
   const drawerVisible = ref(false);
   const selectedEmployee = ref<Employee | null>(null);
   const isFullscreen = ref(false);
-  const areaList = ref<OfficeArea[]>([]);
   const selectedTreeKeys = ref<string[]>([]);
 
   // 新增办公位置相关
@@ -415,14 +426,11 @@
   /**
    * 加载办公区域列表
    */
-  const loadAreaList = async () => {
+  const loadAreaList = async (): Promise<void> => {
     try {
       treeLoading.value = true;
-      const response = await officeApi.getAreaList();
-      if (response.code === 200 && response.data) {
-        areaList.value = response.data;
-        // 页面初始化时保持未选中状态，不自动加载楼层
-      }
+      await fetchAreaList();
+      // 页面初始化时保持未选中状态，不自动加载楼层
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('获取办公区域列表失败:', error);
@@ -434,48 +442,28 @@
   /**
    * 加载楼层配置
    */
-  const loadFloorConfig = async (floor: string) => {
+  const loadFloorConfig = async (floor: string): Promise<void> => {
     if (!floor) {
-      floorConfig.value = null;
-      employees.value = [];
       return;
     }
 
     try {
-      loading.value = true;
-      const [configResponse, employeesResponse] = await Promise.all([
-        officeApi.getFloorConfig(floor),
-        officeApi.getEmployeesByFloor(floor),
+      await Promise.all([
+        fetchFloorConfig(floor),
+        fetchEmployeesByFloor(floor),
       ]);
-
-      if (configResponse.code === 200 && configResponse.data) {
-        floorConfig.value = configResponse.data;
-      } else {
-        Message.error(configResponse.message || '获取楼层配置失败');
-        floorConfig.value = null;
-      }
-
-      if (employeesResponse.code === 200 && employeesResponse.data) {
-        employees.value = employeesResponse.data;
-      } else {
-        employees.value = [];
-      }
     } catch (error) {
-      Message.error('获取楼层配置失败');
-      floorConfig.value = null;
-      employees.value = [];
-    } finally {
-      loading.value = false;
+      // 错误已在Hook中处理
     }
   };
 
   /**
    * 处理树节点选择
    */
-  const handleTreeSelect = (
+  const handleTreeSelect = async (
     selectedKeys: string[],
     data: { selected: boolean; selectedNodes: any[]; node: any }
-  ) => {
+  ): Promise<void> => {
     if (selectedKeys.length === 0) return;
 
     const nodeData = data.node;
@@ -489,8 +477,7 @@
         currentFloor.value = floor;
         selectedTreeKeys.value = [floor];
         highlightEmployeeId.value = null;
-        floorConfig.value = null;
-        loadFloorConfig(floor);
+        await loadFloorConfig(floor);
       }
     }
   };
@@ -584,19 +571,13 @@
         rooms: [],
       };
 
-      // 调用API保存
-      const response = await officeApi.saveFloorConfig(
-        floorCode,
-        newFloorConfig
-      );
-      if (response.code === 200) {
-        Message.success('新增办公位置成功');
+      // 调用Hook保存
+      const success = await saveFloorConfig(floorCode, newFloorConfig);
+      if (success) {
         addLocationVisible.value = false;
         resetAddLocationForm();
         // 重新加载位置列表
         await loadAreaList();
-      } else {
-        Message.error(response.message || '新增失败');
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -654,32 +635,30 @@
       const oldFloorCode = editLocationForm.floorCode;
 
       // 获取当前楼层配置
-      const configResponse = await officeApi.getFloorConfig(oldFloorCode);
-      if (configResponse.code !== 200 || !configResponse.data) {
-        Message.error('获取楼层配置失败');
+      await fetchFloorConfig(oldFloorCode);
+      if (!floorConfig.value) {
         return;
       }
 
-      const floorConfig = configResponse.data;
+      const floorConfigData = { ...floorConfig.value };
       // 更新楼层信息
-      floorConfig.floor = newFloorCode;
-      floorConfig.floorName = editLocationForm.floorName;
-      floorConfig.buildingCode = editLocationForm.buildingCode;
-      floorConfig.buildingName = editLocationForm.buildingName;
-      floorConfig.floorNumber = editLocationForm.floorNumber;
+      floorConfigData.floor = newFloorCode;
+      floorConfigData.floorName = editLocationForm.floorName;
+      floorConfigData.buildingCode = editLocationForm.buildingCode;
+      floorConfigData.buildingName = editLocationForm.buildingName;
+      floorConfigData.floorNumber = editLocationForm.floorNumber;
 
       // 如果楼层代码改变，需要更新房间的floorCode
       if (newFloorCode !== oldFloorCode) {
-        floorConfig.rooms.forEach((room) => {
+        floorConfigData.rooms.forEach((room) => {
           room.floorCode = newFloorCode;
         });
         // 先保存新楼层配置
-        const saveResponse = await officeApi.saveFloorConfig(
+        const saveSuccess = await saveFloorConfig(
           newFloorCode,
-          floorConfig
+          floorConfigData
         );
-        if (saveResponse.code !== 200) {
-          Message.error(saveResponse.message || '保存新楼层配置失败');
+        if (!saveSuccess) {
           return;
         }
         // 然后删除旧楼层配置（需要先找到旧楼层的ID）
@@ -688,21 +667,18 @@
         );
         const oldFloor = oldArea?.floors.find((f) => f.floor === oldFloorCode);
         if (oldFloor?.id) {
-          await officeApi.deleteFloorConfig(oldFloor.id);
+          await deleteFloorConfig(oldFloor.id);
         }
       } else {
         // 楼层代码未改变，直接保存
-        const response = await officeApi.saveFloorConfig(
+        const saveSuccess = await saveFloorConfig(
           oldFloorCode,
-          floorConfig
+          floorConfigData
         );
-        if (response.code !== 200) {
-          Message.error(response.message || '编辑失败');
+        if (!saveSuccess) {
           return;
         }
       }
-
-      Message.success('编辑办公位置成功');
       editLocationVisible.value = false;
       resetEditLocationForm();
       // 重新加载位置列表
@@ -746,21 +722,16 @@
       },
       onOk: async () => {
         try {
-          // 调用API删除楼层（通过ID）
-          const response = await officeApi.deleteFloorConfig(floorId);
-          if (response.code === 200) {
-            Message.success('删除楼层成功');
+          // 调用Hook删除楼层（通过ID）
+          const success = await deleteFloorConfig(floorId);
+          if (success) {
             // 如果当前选中的是被删除的楼层，清空选择
             if (currentFloor.value === floorCode) {
               currentFloor.value = '';
               selectedTreeKeys.value = [];
-              floorConfig.value = null;
-              employees.value = [];
             }
             // 重新加载位置列表
             await loadAreaList();
-          } else {
-            Message.error(response.message || '删除失败');
           }
         } catch (error) {
           // eslint-disable-next-line no-console

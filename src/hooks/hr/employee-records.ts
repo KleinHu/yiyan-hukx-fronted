@@ -40,7 +40,9 @@ function useEmployeeRecords(userCode: string) {
     }
   };
 
-  const createEducation = async (data: Partial<Education>): Promise<boolean> => {
+  const createEducation = async (
+    data: Partial<Education>
+  ): Promise<boolean> => {
     try {
       loading.value = true;
       await employeeRecordApi.createEducation(userCode, data);
@@ -385,7 +387,9 @@ function useEmployeeRecords(userCode: string) {
   const fetchEmergencyContactList = async (): Promise<void> => {
     try {
       loading.value = true;
-      const { data } = await employeeRecordApi.getEmergencyContactList(userCode);
+      const { data } = await employeeRecordApi.getEmergencyContactList(
+        userCode
+      );
       emergencyContactList.value = data || [];
     } catch (error) {
       console.error('获取紧急联系人失败:', error);
@@ -661,7 +665,9 @@ function useEmployeeRecords(userCode: string) {
   const fetchSecondaryEducationList = async (): Promise<void> => {
     try {
       loading.value = true;
-      const { data } = await employeeRecordApi.getSecondaryEducationList(userCode);
+      const { data } = await employeeRecordApi.getSecondaryEducationList(
+        userCode
+      );
       secondaryEducationList.value = data || [];
     } catch (error) {
       console.error('获取二级教育失败:', error);
@@ -757,7 +763,10 @@ function useEmployeeRecords(userCode: string) {
     }
   };
 
-  const updateHonor = async (id: number, data: Partial<Honor>): Promise<boolean> => {
+  const updateHonor = async (
+    id: number,
+    data: Partial<Honor>
+  ): Promise<boolean> => {
     try {
       loading.value = true;
       await employeeRecordApi.updateHonor(id, data);

@@ -41,15 +41,18 @@
 
 <script setup lang="ts">
   import { ref, reactive, onMounted, watch } from 'vue';
-  import { Message } from '@arco-design/web-vue';
+  import useEmployeeRecords from '@/hooks/hr/employee-records';
   import type { Position } from '@/api/hr/types';
-  import employeeRecordApi from '@/api/hr/records';
 
   interface Props {
     userCode: string;
   }
 
   const props = defineProps<Props>();
+
+  // 使用 Hook
+  const employeeRecords = useEmployeeRecords(props.userCode);
+  const { position, fetchPosition, savePosition } = employeeRecords;
 
   // 响应式数据
   const saving = ref(false);
@@ -63,31 +66,23 @@
   const formRef = ref();
 
   // 获取岗位信息
-  const getPosition = async () => {
+  const getPosition = async (): Promise<void> => {
     if (!props.userCode) return;
-    try {
-      const response = await employeeRecordApi.getPosition(props.userCode);
-      if (response.code === 200 && response.data) {
-        Object.assign(formData, response.data);
-      }
-    } catch (error) {
-      Message.error('获取岗位信息失败');
+    await fetchPosition();
+    if (position.value) {
+      Object.assign(formData, position.value);
     }
   };
 
   // 保存
-  const handleSave = async () => {
+  const handleSave = async (): Promise<void> => {
     try {
       saving.value = true;
-      const response = await employeeRecordApi.savePosition(
-        props.userCode,
-        formData
-      );
-      if (response.code === 200) {
-        Message.success('保存成功');
+      const success = await savePosition(formData);
+      if (success) {
+        // 保存成功后重新获取最新数据
+        await getPosition();
       }
-    } catch (error) {
-      Message.error('保存失败');
     } finally {
       saving.value = false;
     }

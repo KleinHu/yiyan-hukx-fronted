@@ -31,7 +31,7 @@
                   item.rankName || item.rankId
                 }}</a-tag>
               </div>
-              <div class="history-ops" v-if="!readonly">
+              <div v-if="!readonly" class="history-ops">
                 <a-button
                   type="text"
                   size="mini"
@@ -113,9 +113,9 @@
 <script setup lang="ts">
   import { ref, reactive, computed, onMounted, watch } from 'vue';
   import { Message, Modal } from '@arco-design/web-vue';
-  import type { RankHistory, JobRank } from '@/api/hr/types';
-  import employeeRecordApi from '@/api/hr/records';
-  import jobRankApi from '@/api/hr/job-rank';
+  import type { RankHistory } from '@/api/hr/types';
+  import useEmployeeRecords from '@/hooks/hr/employee-records';
+  import useJobRank from '@/hooks/hr/job-rank';
 
   interface Props {
     userCode: string;
@@ -130,17 +130,34 @@
     isNewMode: false,
   });
 
+  // 使用 Hooks
+  const employeeRecords = props.isNewMode
+    ? null
+    : useEmployeeRecords(props.userCode);
+  const { jobRankList, fetchJobRankList } = useJobRank({ autoLoad: false });
+
   // 状态数据
-  const loading = ref(false);
   const submitLoading = ref(false);
   const ranksLoading = ref(false);
   const modalVisible = ref(false);
   const isEdit = ref(false);
   const currentId = ref<number | null>(null);
   const currentIndex = ref<number>(-1);
-  const historyList = ref<RankHistory[]>([]);
-  const rankOptions = ref<JobRank[]>([]);
   let tempIdCounter = 0;
+
+  // 新建模式下的本地数据
+  const localHistoryList = ref<RankHistory[]>([]);
+
+  // 计算属性
+  const loading = computed(() =>
+    props.isNewMode ? false : employeeRecords?.loading.value || false
+  );
+  const historyList = computed(() =>
+    props.isNewMode
+      ? localHistoryList.value
+      : employeeRecords?.rankHistoryList.value || []
+  );
+  const rankOptions = computed(() => jobRankList.value);
 
   // 表单数据
   const formRef = ref();
@@ -156,30 +173,15 @@
     effectiveDate: [{ required: true, message: '请选择生效日期' }],
   };
 
-  const getHistoryList = async () => {
-    if (!props.userCode || props.isNewMode) return;
-    try {
-      loading.value = true;
-      const response = await employeeRecordApi.getRankHistoryList(
-        props.userCode
-      );
-      if (response.code === 200) {
-        historyList.value = response.data || [];
-      }
-    } catch (error) {
-      Message.error('获取职级历史失败');
-    } finally {
-      loading.value = false;
-    }
+  const getHistoryList = async (): Promise<void> => {
+    if (!props.userCode || props.isNewMode || !employeeRecords) return;
+    await employeeRecords.fetchRankHistoryList();
   };
 
-  const getRankOptions = async () => {
+  const getRankOptions = async (): Promise<void> => {
     try {
       ranksLoading.value = true;
-      const response = await jobRankApi.getJobRankList();
-      if (response.code === 200) {
-        rankOptions.value = response.data || [];
-      }
+      await fetchJobRankList();
     } catch (error) {
       // 静默失败，职级列表获取失败不影响主流程
     } finally {
@@ -230,21 +232,12 @@
       content: '确定要删除这条职级记录吗？',
       onOk: async () => {
         if (props.isNewMode) {
-          historyList.value.splice(index, 1);
+          localHistoryList.value.splice(index, 1);
           Message.success('删除成功');
-        } else {
-          try {
-            if (item.id) {
-              const response = await employeeRecordApi.deleteRankHistory(
-                item.id
-              );
-              if (response.code === 200) {
-                Message.success('删除职级变动记录成功');
-                getHistoryList();
-              }
-            }
-          } catch (error) {
-            Message.error('删除失败');
+        } else if (item.id && employeeRecords) {
+          const success = await employeeRecords.deleteRankHistory(item.id);
+          if (success) {
+            await getHistoryList();
           }
         }
       },
@@ -257,10 +250,12 @@
 
     if (props.isNewMode) {
       if (isEdit.value && currentIndex.value >= 0) {
-        Object.assign(historyList.value[currentIndex.value], { ...formData });
+        Object.assign(localHistoryList.value[currentIndex.value], {
+          ...formData,
+        });
       } else {
         tempIdCounter -= 1;
-        historyList.value.unshift({
+        localHistoryList.value.unshift({
           ...formData,
           id: tempIdCounter,
         } as RankHistory);
@@ -268,28 +263,24 @@
       Message.success(isEdit.value ? '修改成功' : '新增成功');
       modalVisible.value = false;
     } else {
+      if (!employeeRecords) return;
+
       try {
         submitLoading.value = true;
-        const response =
-          isEdit.value && currentId.value
-            ? await employeeRecordApi.updateRankHistory(
-                currentId.value,
-                formData
-              )
-            : await employeeRecordApi.createRankHistory(
-                props.userCode,
-                formData
-              );
-
-        if (response.code === 200) {
-          Message.success(
-            isEdit.value ? '修改职级变动成功' : '新增职级变动成功'
+        let success = false;
+        if (isEdit.value && currentId.value) {
+          success = await employeeRecords.updateRankHistory(
+            currentId.value,
+            formData
           );
-          modalVisible.value = false;
-          getHistoryList();
+        } else {
+          success = await employeeRecords.createRankHistory(formData);
         }
-      } catch (error) {
-        Message.error(isEdit.value ? '修改失败' : '新增失败');
+
+        if (success) {
+          modalVisible.value = false;
+          await getHistoryList();
+        }
       } finally {
         submitLoading.value = false;
       }
@@ -301,12 +292,13 @@
   };
 
   const saveAllData = async (userCode: string): Promise<boolean> => {
-    if (historyList.value.length === 0) return true;
+    if (localHistoryList.value.length === 0) return true;
     try {
+      const records = useEmployeeRecords(userCode);
       await Promise.all(
-        historyList.value.map((item) => {
+        localHistoryList.value.map((item) => {
           const { id: _id, ...data } = item;
-          return employeeRecordApi.createRankHistory(userCode, data);
+          return records.createRankHistory(data);
         })
       );
       return true;
@@ -315,9 +307,9 @@
     }
   };
 
-  const getLocalData = () => historyList.value;
-  const clearData = () => {
-    historyList.value = [];
+  const getLocalData = () => localHistoryList.value;
+  const clearData = (): void => {
+    localHistoryList.value = [];
   };
 
   watch(

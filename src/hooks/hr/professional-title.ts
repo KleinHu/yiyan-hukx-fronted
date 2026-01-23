@@ -38,10 +38,14 @@ function useProfessionalTitle(options?: {
    * 获取职称详情
    * @param titleId 职称ID
    */
-  const fetchProfessionalTitleDetail = async (titleId: string): Promise<void> => {
+  const fetchProfessionalTitleDetail = async (
+    titleId: string
+  ): Promise<void> => {
     try {
       loading.value = true;
-      const { data } = await professionalTitleApi.getProfessionalTitleDetail(titleId);
+      const { data } = await professionalTitleApi.getProfessionalTitleDetail(
+        titleId
+      );
       currentProfessionalTitle.value = data || null;
     } catch (error) {
       console.error('获取职称详情失败:', error);

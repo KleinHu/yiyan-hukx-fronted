@@ -227,9 +227,9 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, computed } from 'vue';
-  import { Message, Modal } from '@arco-design/web-vue';
-  import professionalTitleApi from '@/api/hr/professional-title';
+  import { ref, reactive, computed } from 'vue';
+  import { Modal } from '@arco-design/web-vue';
+  import useProfessionalTitle from '@/hooks/hr/professional-title';
   import type { ProfessionalTitle } from '@/api/hr/types';
   import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
 
@@ -244,9 +244,17 @@
     { title: '操作', slotName: 'operations', width: 200, fixed: 'right' },
   ];
 
+  // 使用 Hook
+  const {
+    loading,
+    professionalTitleList,
+    fetchProfessionalTitleList,
+    createProfessionalTitle,
+    updateProfessionalTitle,
+    deleteProfessionalTitle,
+  } = useProfessionalTitle({ autoLoad: false });
+
   // 状态数据
-  const loading = ref(false);
-  const titleList = ref<ProfessionalTitle[]>([]);
   const modalVisible = ref(false);
   const isEdit = ref(false);
   const currentTitle = ref<ProfessionalTitle | null>(null);
@@ -322,33 +330,27 @@
   };
 
   /**
-   * 获取职称列表
+   * 获取职称列表（带搜索过滤）
    */
-  const getTitleList = async () => {
-    try {
-      loading.value = true;
-      const res = await professionalTitleApi.getProfessionalTitleList();
-      if (res.code === 200) {
-        let list = res.data || [];
-        if (searchForm.titleName) {
-          list = list.filter((i) => i.titleName.includes(searchForm.titleName));
-        }
-        if (searchForm.titleCategory) {
-          list = list.filter(
-            (i) => i.titleCategory === searchForm.titleCategory
-          );
-        }
-        if (searchForm.titleLevel) {
-          list = list.filter((i) => i.titleLevel === searchForm.titleLevel);
-        }
-        titleList.value = list;
-      }
-    } catch (e) {
-      Message.error('加载失败');
-    } finally {
-      loading.value = false;
-    }
+  const getTitleList = async (): Promise<void> => {
+    await fetchProfessionalTitleList();
   };
+
+  // 过滤后的职称列表
+  const titleList = computed(() => {
+    let list = [...professionalTitleList.value];
+    const { titleName, titleCategory, titleLevel } = searchForm;
+    if (titleName) {
+      list = list.filter((i) => i.titleName.includes(titleName));
+    }
+    if (titleCategory) {
+      list = list.filter((i) => i.titleCategory === titleCategory);
+    }
+    if (titleLevel) {
+      list = list.filter((i) => i.titleLevel === titleLevel);
+    }
+    return list;
+  });
 
   const handleSearch = () => getTitleList();
   const handleReset = () => {
@@ -392,41 +394,33 @@
     modalVisible.value = true;
   };
 
-  const handleDelete = (title: ProfessionalTitle) => {
+  const handleDelete = (title: ProfessionalTitle): void => {
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除职称"${title.titleName}"吗？`,
       onOk: async () => {
-        const res = await professionalTitleApi.deleteProfessionalTitle(
-          title.titleId
-        );
-        if (res.code === 200) {
-          Message.success('删除成功');
-          getTitleList();
+        const success = await deleteProfessionalTitle(title.titleId);
+        if (success) {
+          await getTitleList();
         }
       },
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     const err = await formRef.value?.validate();
     if (err) return;
 
-    try {
-      const res = isEdit.value
-        ? await professionalTitleApi.updateProfessionalTitle(
-            formData.titleId,
-            formData
-          )
-        : await professionalTitleApi.createProfessionalTitle(formData);
+    let success = false;
+    if (isEdit.value) {
+      success = await updateProfessionalTitle(formData.titleId, formData);
+    } else {
+      success = await createProfessionalTitle(formData);
+    }
 
-      if (res.code === 200) {
-        Message.success('保存成功');
-        modalVisible.value = false;
-        getTitleList();
-      }
-    } catch (e) {
-      Message.error('保存失败');
+    if (success) {
+      modalVisible.value = false;
+      await getTitleList();
     }
   };
 
@@ -434,7 +428,8 @@
     modalVisible.value = false;
   };
 
-  onMounted(getTitleList);
+  // 初始化
+  getTitleList();
 </script>
 
 <style scoped lang="less">
