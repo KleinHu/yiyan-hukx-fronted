@@ -13,11 +13,12 @@
         <employee-list
           ref="employeeListRef"
           :employee-list="employeeList"
-          :department-list="departmentList"
+          :department-tree-data="departmentTreeData"
           :loading="loading"
-          :current-record="currentRecord"
+          :selected-user-code="selectedUserCode"
           :pagination="pagination"
           @add="handleAdd"
+          @batch-photo="handleBatchPhoto"
           @select="handleSelect"
           @search="fetchData"
           @update:pagination="handlePaginationUpdate"
@@ -28,11 +29,8 @@
       <a-col :span="18" class="right-col">
         <employee-form
           ref="employeeFormRef"
-          v-model:form-data="formData"
-          v-model:ext-data="extData"
-          :current-record="currentRecord"
+          :user-code="selectedUserCode"
           :is-adding="isAdding"
-          :detail-loading="detailLoading"
           :submit-loading="submitLoading"
           :department-tree-data="departmentTreeData"
           :job-rank-list="jobRankList"
@@ -41,9 +39,6 @@
           @cancel="handleCancel"
           @save="handleSave"
           @openPhotoEditor="handleOpenPhotoEditor"
-          @titleChange="handleTitleChange"
-          @update:form-data="handleFormDataUpdate"
-          @update:ext-data="handleExtDataUpdate"
         />
       </a-col>
     </a-row>
@@ -56,58 +51,72 @@
       @complete="handlePhotoEditorComplete"
       @cancel="handlePhotoEditorCancel"
     />
+
+    <!-- 批量上传证件照 -->
+    <BatchPhotoUploadModal v-model="batchPhotoVisible" @success="fetchData" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted } from 'vue';
+  import { ref, onMounted, computed } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import useEmployeeList from '@/hooks/hr/employee';
   import useDepartmentTree from '@/hooks/hr/department';
   import jobRankApi from '@/api/hr/job-rank';
   import professionalTitleApi from '@/api/hr/professional-title';
+  import employeeApi from '@/api/hr/employee';
   import employeeRecordApi from '@/api/hr/records';
   import fileApi from '@/api/hr/file';
   import type {
-    Employee,
     JobRank,
-    Position,
     ProfessionalTitle,
+    Employee,
+    Position,
+    EmployeeListItem,
   } from '@/api/hr/types';
   import IdPhoto from '@/components/id-photo/index.vue';
+  import BatchPhotoUploadModal from './components/batch-photo-upload-modal.vue';
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   import EmployeeList from './components/employee-list.vue';
   import EmployeeForm from './components/employee-form.vue';
 
   // 使用 Hooks
   const {
-    employeeList,
+    employeeList: fullEmployeeList,
     loading,
     pagination,
     fetchEmployeeList,
-    createEmployee,
-    updateEmployee,
   } = useEmployeeList({
     autoLoad: false, // 手动控制加载
   });
 
-  const {
-    departmentTreeData,
-    departmentList,
-    fetchDepartmentTree,
-    fetchDepartmentList,
-  } = useDepartmentTree({
-    autoLoad: false, // 手动控制加载
+  /**
+   * 将完整员工列表转换为简化列表（只包含必要字段）
+   */
+  const employeeList = computed<EmployeeListItem[]>(() => {
+    return fullEmployeeList.value.map((emp) => ({
+      userCode: emp.userCode,
+      userName: emp.userName,
+      departmentName: emp.departmentName,
+      status: emp.status,
+      statusName: emp.statusName,
+      avatarUrl: emp.avatarUrl,
+    }));
   });
 
+  const { departmentTreeData, fetchDepartmentTree, fetchDepartmentList } =
+    useDepartmentTree({
+      autoLoad: false, // 手动控制加载
+    });
+
   // 状态
-  const detailLoading = ref(false);
   const submitLoading = ref(false);
   const jobRankList = ref<JobRank[]>([]);
   const professionalTitleList = ref<ProfessionalTitle[]>([]);
-  const currentRecord = ref<Employee | null>(null);
+  const selectedUserCode = ref<string | null>(null);
   const isAdding = ref(false);
   const photoEditorVisible = ref(false);
+  const batchPhotoVisible = ref(false);
 
   // 组件引用
   const employeeListRef = ref();
@@ -128,19 +137,6 @@
     ],
   };
 
-  // 档案主表数据
-  const formData = reactive<Partial<Employee>>({});
-
-  // 档案扩展数据
-  const extData = reactive({
-    position: {
-      primaryProfession: '',
-      secondaryProfession: '',
-      jobCategory: '',
-      positionType: '',
-    } as Partial<Position>,
-  });
-
   /**
    * 处理分页更新
    */
@@ -152,20 +148,6 @@
     pagination.value.current = value.current;
     pagination.value.pageSize = value.pageSize;
     pagination.value.total = value.total;
-  };
-
-  /**
-   * 处理表单数据更新
-   */
-  const handleFormDataUpdate = (value: Partial<Employee>) => {
-    Object.assign(formData, value);
-  };
-
-  /**
-   * 处理扩展数据更新
-   */
-  const handleExtDataUpdate = (value: { position: Partial<Position> }) => {
-    Object.assign(extData.position, value.position);
   };
 
   /**
@@ -188,27 +170,9 @@
   /**
    * 选择员工
    */
-  const handleSelect = async (record: Employee) => {
+  const handleSelect = async (userCode: string) => {
     isAdding.value = false;
-    currentRecord.value = record;
-    // 重置并载入数据
-    Object.assign(formData, JSON.parse(JSON.stringify(record)));
-
-    // 载入扩展数据
-    resetExtData();
-    if (record.userCode) {
-      try {
-        detailLoading.value = true;
-        const posRes = await employeeRecordApi.getPosition(record.userCode);
-        if (posRes.code === 200 && posRes.data) {
-          extData.position = { ...posRes.data };
-        }
-      } catch (e) {
-        // 获取岗位详细信息失败，静默处理
-      } finally {
-        detailLoading.value = false;
-      }
-    }
+    selectedUserCode.value = userCode;
   };
 
   /**
@@ -216,39 +180,12 @@
    */
   const handleAdd = () => {
     isAdding.value = true;
-    currentRecord.value = null;
-    // 清空表单，设置默认值
-    Object.keys(formData).forEach((key) => delete (formData as any)[key]);
-    formData.gender = 1;
-    formData.status = 1;
-    formData.politicalStatus = 3; // 默认群众
-    resetExtData();
-  };
-
-  const resetExtData = () => {
-    extData.position = {
-      primaryProfession: '',
-      secondaryProfession: '',
-      jobCategory: '',
-      positionType: '',
-    };
-  };
-
-  /**
-   * 职称变更时，同步更新职称名称
-   */
-  const handleTitleChange = (titleId: string) => {
-    const selectedTitle = professionalTitleList.value.find(
-      (t) => t.titleId === titleId
-    );
-    if (selectedTitle) {
-      formData.professionalTitleName = selectedTitle.titleName || '';
-    }
+    selectedUserCode.value = null;
   };
 
   const handleCancel = () => {
     isAdding.value = false;
-    currentRecord.value = null;
+    selectedUserCode.value = null;
   };
 
   /**
@@ -274,7 +211,10 @@
         'avatar'
       );
       if (uploadResult?.url) {
-        formData.avatarUrl = uploadResult.url;
+        // 直接更新表单组件的数据
+        if (employeeFormRef.value?.formData) {
+          employeeFormRef.value.formData.avatarUrl = uploadResult.url;
+        }
         Message.success('证件照上传成功，保存后生效');
       }
     } catch (e) {
@@ -289,24 +229,18 @@
     photoEditorVisible.value = false;
   };
 
-  // 保留原有的上传方法（兼容性）
-  // const onAvatarUpload = async (options: any) => {
-  //   const { fileItem } = options;
-  //   try {
-  //     const { data } = await fileApi.uploadFile(fileItem.file, 'avatar');
-  //     if (data?.url) {
-  //       formData.avatarUrl = data.url;
-  //       Message.success('头像上传成功，保存后生效');
-  //     }
-  //   } catch (e) {
-  //     Message.error('头像上传失败');
-  //   }
-  // };
+  /** 打开批量上传证件照弹窗 */
+  const handleBatchPhoto = () => {
+    batchPhotoVisible.value = true;
+  };
 
   /**
    * 保存档案
    */
-  const handleSave = async () => {
+  const handleSave = async (data: {
+    formData: Partial<Employee>;
+    extData: { position: Partial<Position> };
+  }) => {
     const errors = await employeeFormRef.value?.formRef?.validate();
     if (errors) {
       Message.error('表单填写有误，请检查');
@@ -315,15 +249,22 @@
 
     try {
       submitLoading.value = true;
+      const { formData, extData } = data;
+
       // 1. 保存主表数据
       if (isAdding.value) {
-        await createEmployee(formData);
+        const { data: newUserCode } = await employeeApi.createEmployee(
+          formData
+        );
+        if (newUserCode) {
+          formData.userCode = newUserCode;
+        }
       } else {
         if (!formData.userCode) {
           Message.error('工号不能为空');
           return;
         }
-        await updateEmployee(formData.userCode, formData);
+        await employeeApi.updateEmployee(formData.userCode, formData);
       }
 
       const { userCode } = formData;
@@ -358,8 +299,13 @@
       }
 
       Message.success('人事档案已全量更新');
+      const wasAdding = isAdding.value;
       isAdding.value = false;
-      fetchData();
+      selectedUserCode.value = userCode; // 保存后选中该员工
+      // 仅新增成功后刷新左侧列表；保存修改不刷新
+      if (wasAdding) {
+        fetchData();
+      }
     } finally {
       submitLoading.value = false;
     }

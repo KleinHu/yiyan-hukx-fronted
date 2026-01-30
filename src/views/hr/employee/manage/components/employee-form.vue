@@ -1,7 +1,10 @@
 <template>
   <a-card :bordered="false" class="panel-card right-panel-card">
-    <a-spin :loading="detailLoading" style="width: 100%; height: 100%">
-      <div v-if="currentRecord || isAdding" class="right-panel">
+    <a-spin
+      :loading="detailLoading || submitLoading"
+      style="width: 100%; height: 100%; min-height: 200px"
+    >
+      <div v-if="userCode || isAdding" class="right-panel">
         <div class="detail-header-sticky">
           <div class="person-summary">
             <a-avatar :size="54" class="header-avatar">
@@ -44,30 +47,22 @@
             layout="vertical"
             class="full-width-form"
           >
-            <a-row :gutter="24">
-              <!-- 核心身份信息 -->
-              <a-col :span="12">
-                <identity-info
+            <a-row :gutter="[24, 12]">
+              <!-- 员工基础信息（核心身份 + 行政岗位） -->
+              <a-col :span="24">
+                <employee-basic-info
                   :model-value="formData"
                   :is-adding="isAdding"
-                  @update:model-value="handleFormDataUpdate"
-                  @open-photo-editor="handleOpenPhotoEditor"
-                />
-              </a-col>
-
-              <!-- 行政岗位配置 -->
-              <a-col :span="12">
-                <position-config
-                  :model-value="formData"
                   :department-tree-data="departmentTreeData"
                   :job-rank-list="jobRankList"
                   :professional-title-list="professionalTitleList"
                   @update:model-value="handleFormDataUpdate"
+                  @open-photo-editor="handleOpenPhotoEditor"
                   @title-change="handleTitleChange"
                 />
               </a-col>
 
-              <!-- 核心岗位详细信息 -->
+              <!-- 核心岗位详细信息（独立一行，美化 UI） -->
               <a-col :span="12">
                 <position-detail
                   :model-value="extData.position"
@@ -76,334 +71,174 @@
               </a-col>
 
               <!-- 教育背景 -->
-              <a-col :span="12">
-                <a-card :bordered="false" class="form-block">
-                  <template #title>
-                    <div class="block-title">
-                      <icon-book /> 教育背景
-                      <a-badge
-                        v-if="educationCount > 0"
-                        :count="educationCount"
-                        :overflow-count="99"
-                        :offset="[8, 0]"
-                      />
-                    </div>
-                  </template>
-                  <template #extra>
-                    <a-button
-                      type="primary"
-                      size="mini"
-                      @click="educationListRef?.handleAdd?.()"
-                    >
-                      <template #icon><icon-plus /></template>新增教育经历
-                    </a-button>
-                  </template>
-                  <employee-education-list
-                    ref="educationListRef"
-                    :key="`edu-${formData.userCode || 'new'}`"
-                    :user-code="formData.userCode || ''"
-                    :is-new-mode="isAdding"
-                    hide-header
-                  />
-                </a-card>
-              </a-col>
+              <record-card-section
+                title="教育背景"
+                :count="educationCount"
+                add-button-text="新增教育经历"
+                @add="educationListRef?.handleAdd?.()"
+              >
+                <template #icon><icon-book /></template>
+                <employee-education-list
+                  ref="educationListRef"
+                  :key="`edu-${formData.userCode || 'new'}`"
+                  :user-code="formData.userCode || ''"
+                  :is-new-mode="isAdding"
+                  hide-header
+                />
+              </record-card-section>
 
               <!-- 技能鉴定与证书 -->
-              <a-col :span="12">
-                <a-card :bordered="false" class="form-block">
-                  <template #title>
-                    <div class="block-title">
-                      <icon-skin /> 技能鉴定与证书
-                      <a-badge
-                        v-if="skillCount > 0"
-                        :count="skillCount"
-                        :overflow-count="99"
-                        :offset="[8, 0]"
-                      />
-                    </div>
-                  </template>
-                  <template #extra>
-                    <a-button
-                      type="primary"
-                      size="mini"
-                      @click="skillsListRef?.handleAdd?.()"
-                    >
-                      <template #icon><icon-plus /></template>新增技能鉴定
-                    </a-button>
-                  </template>
-                  <employee-skills-list
-                    ref="skillsListRef"
-                    :key="`skill-${formData.userCode || 'new'}`"
-                    :user-code="formData.userCode || ''"
-                    :is-new-mode="isAdding"
-                    hide-header
-                  />
-                </a-card>
-              </a-col>
+              <record-card-section
+                title="技能鉴定与证书"
+                :count="skillCount"
+                add-button-text="新增技能鉴定"
+                @add="skillsListRef?.handleAdd?.()"
+              >
+                <template #icon><icon-skin /></template>
+                <employee-skills-list
+                  ref="skillsListRef"
+                  :key="`skill-${formData.userCode || 'new'}`"
+                  :user-code="formData.userCode || ''"
+                  :is-new-mode="isAdding"
+                  hide-header
+                />
+              </record-card-section>
 
               <!-- 紧急联系人 -->
-              <a-col :span="12">
-                <a-card :bordered="false" class="form-block">
-                  <template #title>
-                    <div class="block-title">
-                      <icon-phone /> 紧急联系人
-                      <a-badge
-                        v-if="contactCount > 0"
-                        :count="contactCount"
-                        :overflow-count="99"
-                        :offset="[8, 0]"
-                      />
-                    </div>
-                  </template>
-                  <template #extra>
-                    <a-button
-                      type="primary"
-                      size="mini"
-                      @click="contactsListRef?.handleAdd?.()"
-                    >
-                      <template #icon><icon-plus /></template>新增紧急联系人
-                    </a-button>
-                  </template>
-                  <employee-contacts-list
-                    ref="contactsListRef"
-                    :key="`contact-${formData.userCode || 'new'}`"
-                    :user-code="formData.userCode || ''"
-                    :is-new-mode="isAdding"
-                    hide-header
-                  />
-                </a-card>
-              </a-col>
+              <record-card-section
+                title="紧急联系人"
+                :count="contactCount"
+                add-button-text="新增紧急联系人"
+                @add="contactsListRef?.handleAdd?.()"
+              >
+                <template #icon><icon-phone /></template>
+                <employee-contacts-list
+                  ref="contactsListRef"
+                  :key="`contact-${formData.userCode || 'new'}`"
+                  :user-code="formData.userCode || ''"
+                  :is-new-mode="isAdding"
+                  hide-header
+                />
+              </record-card-section>
 
               <!-- 绩效记录 -->
-              <a-col :span="12">
-                <a-card :bordered="false" class="form-block">
-                  <template #title>
-                    <div class="block-title">
-                      <icon-star /> 绩效记录
-                      <a-badge
-                        v-if="performanceCount > 0"
-                        :count="performanceCount"
-                        :overflow-count="99"
-                        :offset="[8, 0]"
-                      />
-                    </div>
-                  </template>
-                  <template #extra>
-                    <a-button
-                      type="primary"
-                      size="mini"
-                      @click="performanceListRef?.handleAdd?.()"
-                    >
-                      <template #icon><icon-plus /></template>新增绩效记录
-                    </a-button>
-                  </template>
-                  <employee-performance-list
-                    ref="performanceListRef"
-                    :key="`perf-${formData.userCode || 'new'}`"
-                    :user-code="formData.userCode || ''"
-                    :is-new-mode="isAdding"
-                    hide-header
-                  />
-                </a-card>
-              </a-col>
+              <record-card-section
+                title="绩效记录"
+                :count="performanceCount"
+                add-button-text="新增绩效记录"
+                @add="performanceListRef?.handleAdd?.()"
+              >
+                <template #icon><icon-star /></template>
+                <employee-performance-list
+                  ref="performanceListRef"
+                  :key="`perf-${formData.userCode || 'new'}`"
+                  :user-code="formData.userCode || ''"
+                  :is-new-mode="isAdding"
+                  hide-header
+                />
+              </record-card-section>
 
               <!-- 职级历史 -->
-              <a-col :span="12">
-                <a-card :bordered="false" class="form-block">
-                  <template #title>
-                    <div class="block-title">
-                      <icon-layers /> 职级历史
-                      <a-badge
-                        v-if="rankCount > 0"
-                        :count="rankCount"
-                        :overflow-count="99"
-                        :offset="[8, 0]"
-                      />
-                    </div>
-                  </template>
-                  <template #extra>
-                    <a-button
-                      type="primary"
-                      size="mini"
-                      @click="rankTimelineRef?.handleAdd?.()"
-                    >
-                      <template #icon><icon-plus /></template>新增职级变动
-                    </a-button>
-                  </template>
-                  <employee-rank-timeline
-                    ref="rankTimelineRef"
-                    :key="`rank-${formData.userCode || 'new'}`"
-                    :user-code="formData.userCode || ''"
-                    :is-new-mode="isAdding"
-                    hide-header
-                  />
-                </a-card>
-              </a-col>
+              <record-card-section
+                title="职级历史"
+                :count="rankCount"
+                add-button-text="新增职级变动"
+                @add="rankTimelineRef?.handleAdd?.()"
+              >
+                <template #icon><icon-layers /></template>
+                <employee-rank-timeline
+                  ref="rankTimelineRef"
+                  :key="`rank-${formData.userCode || 'new'}`"
+                  :user-code="formData.userCode || ''"
+                  :is-new-mode="isAdding"
+                  hide-header
+                />
+              </record-card-section>
 
               <!-- 岗位师傅 -->
-              <a-col :span="12">
-                <a-card :bordered="false" class="form-block">
-                  <template #title>
-                    <div class="block-title">
-                      <icon-user-group /> 岗位师傅
-                      <a-badge
-                        v-if="mentorCount > 0"
-                        :count="mentorCount"
-                        :overflow-count="99"
-                        :offset="[8, 0]"
-                      />
-                    </div>
-                  </template>
-                  <template #extra>
-                    <a-button
-                      type="primary"
-                      size="mini"
-                      @click="mentorsListRef?.handleAdd?.()"
-                    >
-                      <template #icon><icon-plus /></template>新增带教记录
-                    </a-button>
-                  </template>
-                  <employee-mentors-list
-                    ref="mentorsListRef"
-                    :key="`mentor-${formData.userCode || 'new'}`"
-                    :user-code="formData.userCode || ''"
-                    :is-new-mode="isAdding"
-                    hide-header
-                  />
-                </a-card>
-              </a-col>
+              <record-card-section
+                title="岗位师傅"
+                :count="mentorCount"
+                add-button-text="新增带教记录"
+                @add="mentorsListRef?.handleAdd?.()"
+              >
+                <template #icon><icon-user-group /></template>
+                <employee-mentors-list
+                  ref="mentorsListRef"
+                  :key="`mentor-${formData.userCode || 'new'}`"
+                  :user-code="formData.userCode || ''"
+                  :is-new-mode="isAdding"
+                  hide-header
+                />
+              </record-card-section>
 
               <!-- 授课认证 -->
-              <a-col :span="12">
-                <a-card :bordered="false" class="form-block">
-                  <template #title>
-                    <div class="block-title">
-                      <icon-trophy /> 授课认证
-                      <a-badge
-                        v-if="teachingCertCount > 0"
-                        :count="teachingCertCount"
-                        :overflow-count="99"
-                        :offset="[8, 0]"
-                      />
-                    </div>
-                  </template>
-                  <template #extra>
-                    <a-button
-                      type="primary"
-                      size="mini"
-                      @click="teachingCertListRef?.handleAdd?.()"
-                    >
-                      <template #icon><icon-plus /></template>新增授课认证
-                    </a-button>
-                  </template>
-                  <employee-teaching-cert-list
-                    ref="teachingCertListRef"
-                    :key="`tcert-${formData.userCode || 'new'}`"
-                    :user-code="formData.userCode || ''"
-                    :is-new-mode="isAdding"
-                    hide-header
-                  />
-                </a-card>
-              </a-col>
+              <record-card-section
+                title="授课认证"
+                :count="teachingCertCount"
+                add-button-text="新增授课认证"
+                @add="teachingCertListRef?.handleAdd?.()"
+              >
+                <template #icon><icon-trophy /></template>
+                <employee-teaching-cert-list
+                  ref="teachingCertListRef"
+                  :key="`tcert-${formData.userCode || 'new'}`"
+                  :user-code="formData.userCode || ''"
+                  :is-new-mode="isAdding"
+                  hide-header
+                />
+              </record-card-section>
 
               <!-- 授课认定 -->
-              <a-col :span="12">
-                <a-card :bordered="false" class="form-block">
-                  <template #title>
-                    <div class="block-title">
-                      <icon-check-circle /> 授课认定
-                      <a-badge
-                        v-if="teachingRecordCount > 0"
-                        :count="teachingRecordCount"
-                        :overflow-count="99"
-                        :offset="[8, 0]"
-                      />
-                    </div>
-                  </template>
-                  <template #extra>
-                    <a-button
-                      type="primary"
-                      size="mini"
-                      @click="teachingRecordListRef?.handleAdd?.()"
-                    >
-                      <template #icon><icon-plus /></template>新增授课认定
-                    </a-button>
-                  </template>
-                  <employee-teaching-record-list
-                    ref="teachingRecordListRef"
-                    :key="`trecord-${formData.userCode || 'new'}`"
-                    :user-code="formData.userCode || ''"
-                    :is-new-mode="isAdding"
-                    hide-header
-                  />
-                </a-card>
-              </a-col>
+              <record-card-section
+                title="授课认定"
+                :count="teachingRecordCount"
+                add-button-text="新增授课认定"
+                @add="teachingRecordListRef?.handleAdd?.()"
+              >
+                <template #icon><icon-check-circle /></template>
+                <employee-teaching-record-list
+                  ref="teachingRecordListRef"
+                  :key="`trecord-${formData.userCode || 'new'}`"
+                  :user-code="formData.userCode || ''"
+                  :is-new-mode="isAdding"
+                  hide-header
+                />
+              </record-card-section>
 
               <!-- 二级教育 -->
-              <a-col :span="12">
-                <a-card :bordered="false" class="form-block">
-                  <template #title>
-                    <div class="block-title">
-                      <icon-safe /> 二级教育
-                      <a-badge
-                        v-if="secondaryEduCount > 0"
-                        :count="secondaryEduCount"
-                        :overflow-count="99"
-                        :offset="[8, 0]"
-                      />
-                    </div>
-                  </template>
-                  <template #extra>
-                    <a-button
-                      type="primary"
-                      size="mini"
-                      @click="secondaryEduListRef?.handleAdd?.()"
-                    >
-                      <template #icon><icon-plus /></template>新增二级教育
-                    </a-button>
-                  </template>
-                  <employee-secondary-edu-list
-                    ref="secondaryEduListRef"
-                    :key="`sedu-${formData.userCode || 'new'}`"
-                    :user-code="formData.userCode || ''"
-                    :is-new-mode="isAdding"
-                    hide-header
-                  />
-                </a-card>
-              </a-col>
+              <record-card-section
+                title="二级教育"
+                :count="secondaryEduCount"
+                add-button-text="新增二级教育"
+                @add="secondaryEduListRef?.handleAdd?.()"
+              >
+                <template #icon><icon-safe /></template>
+                <employee-secondary-edu-list
+                  ref="secondaryEduListRef"
+                  :key="`sedu-${formData.userCode || 'new'}`"
+                  :user-code="formData.userCode || ''"
+                  :is-new-mode="isAdding"
+                  hide-header
+                />
+              </record-card-section>
 
               <!-- 荣誉情况 -->
-              <a-col :span="12">
-                <a-card :bordered="false" class="form-block">
-                  <template #title>
-                    <div class="block-title">
-                      <icon-gift /> 荣誉情况
-                      <a-badge
-                        v-if="honorCount > 0"
-                        :count="honorCount"
-                        :overflow-count="99"
-                        :offset="[8, 0]"
-                      />
-                    </div>
-                  </template>
-                  <template #extra>
-                    <a-button
-                      type="primary"
-                      size="mini"
-                      @click="honorsListRef?.handleAdd?.()"
-                    >
-                      <template #icon><icon-plus /></template>新增荣誉记录
-                    </a-button>
-                  </template>
-                  <employee-honors-list
-                    ref="honorsListRef"
-                    :key="`honor-${formData.userCode || 'new'}`"
-                    :user-code="formData.userCode || ''"
-                    :is-new-mode="isAdding"
-                    hide-header
-                  />
-                </a-card>
-              </a-col>
+              <record-card-section
+                title="荣誉情况"
+                :count="honorCount"
+                add-button-text="新增荣誉记录"
+                @add="honorsListRef?.handleAdd?.()"
+              >
+                <template #icon><icon-gift /></template>
+                <employee-honors-list
+                  ref="honorsListRef"
+                  :key="`honor-${formData.userCode || 'new'}`"
+                  :user-code="formData.userCode || ''"
+                  :is-new-mode="isAdding"
+                  hide-header
+                />
+              </record-card-section>
 
               <!-- 综合备注 -->
               <a-col :span="24">
@@ -428,17 +263,20 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed } from 'vue';
+  import { ref, computed, watch, reactive } from 'vue';
+  import { Message } from '@arco-design/web-vue';
   import type {
     Employee,
     JobRank,
     ProfessionalTitle,
     Position,
   } from '@/api/hr/types';
-  import IdentityInfo from './form-sections/identity-info.vue';
-  import PositionConfig from './form-sections/position-config.vue';
+  import employeeApi from '@/api/hr/employee';
+  import employeeRecordApi from '@/api/hr/records';
+  import EmployeeBasicInfo from '@/views/hr/employee/manage/components/form-sections/employee-basic-info.vue';
   import PositionDetail from './form-sections/position-detail.vue';
   import RemarkSection from './form-sections/remark-section.vue';
+  import RecordCardSection from './form-sections/record-card-section.vue';
   import EmployeePerformanceList from '../../common/employee-performance-list.vue';
   import EmployeeRankTimeline from '../../common/employee-rank-timeline.vue';
   import EmployeeSkillsList from '../../common/employee-skills-list.vue';
@@ -451,13 +289,8 @@
   import EmployeeHonorsList from '../../common/employee-honors-list.vue';
 
   interface Props {
-    formData: Partial<Employee>;
-    extData: {
-      position: Partial<Position>;
-    };
-    currentRecord: Employee | null;
-    isAdding: boolean;
-    detailLoading: boolean;
+    userCode?: string | null; // 员工工号（编辑模式）
+    isAdding: boolean; // 是否新增模式
     submitLoading: boolean;
     departmentTreeData: any[];
     jobRankList: JobRank[];
@@ -465,15 +298,18 @@
     rules: any;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emit = defineEmits<{
     (e: 'cancel'): void;
-    (e: 'save'): void;
+    (
+      e: 'save',
+      data: {
+        formData: Partial<Employee>;
+        extData: { position: Partial<Position> };
+      }
+    ): void;
     (e: 'openPhotoEditor'): void;
-    (e: 'titleChange', titleId: string): void;
-    (e: 'update:formData', value: Partial<Employee>): void;
-    (e: 'update:extData', value: { position: Partial<Position> }): void;
   }>();
 
   const formRef = ref();
@@ -490,8 +326,100 @@
   const secondaryEduListRef = ref();
   const honorsListRef = ref();
 
+  // 内部状态
+  const detailLoading = ref(false);
+  const formData = reactive<Partial<Employee>>({});
+  const extData = reactive({
+    position: {
+      primaryProfession: '',
+      secondaryProfession: '',
+      jobCategory: '',
+      positionType: '',
+    } as Partial<Position>,
+  });
+
+  /**
+   * 重置表单数据
+   */
+  const resetFormData = () => {
+    Object.keys(formData).forEach((key) => delete (formData as any)[key]);
+    formData.gender = 1;
+    formData.status = 1;
+    formData.politicalStatus = 3; // 默认群众
+
+    extData.position = {
+      primaryProfession: '',
+      secondaryProfession: '',
+      jobCategory: '',
+      positionType: '',
+    };
+  };
+
+  /**
+   * 根据 userCode 加载员工详情
+   */
+  const loadEmployeeDetail = async (userCode: string) => {
+    try {
+      detailLoading.value = true;
+
+      // 1. 获取员工基础信息
+      const { data: employeeData } = await employeeApi.getEmployeeByUserCode(
+        userCode
+      );
+      if (employeeData) {
+        Object.assign(formData, employeeData);
+      }
+
+      // 2. 获取岗位扩展信息
+      try {
+        const posRes = await employeeRecordApi.getPosition(userCode);
+        if (posRes.code === 200 && posRes.data) {
+          extData.position = { ...posRes.data };
+        }
+      } catch (_e) {
+        // 获取岗位详细信息失败，静默处理
+      }
+    } catch (error) {
+      Message.error('获取员工详情失败');
+    } finally {
+      detailLoading.value = false;
+    }
+  };
+
+  /**
+   * 监听 userCode 变化，自动加载数据
+   */
+  watch(
+    () => props.userCode,
+    (newUserCode) => {
+      if (newUserCode && !props.isAdding) {
+        loadEmployeeDetail(newUserCode);
+      } else if (props.isAdding) {
+        resetFormData();
+      }
+    },
+    { immediate: true }
+  );
+
+  /**
+   * 监听 isAdding 变化
+   */
+  watch(
+    () => props.isAdding,
+    (newIsAdding) => {
+      if (newIsAdding) {
+        resetFormData();
+      }
+    }
+  );
+
   const handleTitleChange = (titleId: string) => {
-    emit('titleChange', titleId);
+    const selectedTitle = props.professionalTitleList.find(
+      (t) => t.titleId === titleId
+    );
+    if (selectedTitle) {
+      formData.professionalTitleName = selectedTitle.titleName || '';
+    }
   };
 
   const handleOpenPhotoEditor = () => {
@@ -503,17 +431,20 @@
   };
 
   const handleSave = () => {
-    emit('save');
+    emit('save', {
+      formData: { ...formData },
+      extData: {
+        position: { ...extData.position },
+      },
+    });
   };
 
   const handleFormDataUpdate = (value: Partial<Employee>) => {
-    emit('update:formData', value);
+    Object.assign(formData, value);
   };
 
   const handlePositionUpdate = (value: Partial<Position>) => {
-    emit('update:extData', {
-      position: value,
-    });
+    Object.assign(extData.position, value);
   };
 
   // 计算各模块数量
@@ -551,6 +482,8 @@
   // 暴露方法和引用供父组件使用
   defineExpose({
     formRef,
+    formData,
+    extData,
     educationListRef,
     skillsListRef,
     contactsListRef,
@@ -574,7 +507,7 @@
 
     :deep(.arco-card-body) {
       height: 100%;
-      padding: 0;
+      padding: 15px;
       border-radius: 12px;
       overflow: hidden;
     }
@@ -643,51 +576,6 @@
       .full-width-form {
         max-width: 1400px;
         margin: 0 auto;
-
-        :deep(.arco-row) {
-          display: flex;
-          flex-wrap: wrap;
-        }
-
-        :deep(.arco-col) {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .form-block {
-          margin-bottom: 16px;
-          flex: 1;
-          box-sizing: border-box;
-
-          :deep(.arco-card-body) {
-            padding: 16px 20px;
-          }
-
-          :deep(.arco-card-header) {
-            padding: 16px 20px;
-            border-bottom: 1px solid #f2f3f5;
-          }
-
-          .block-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: #1d2129;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 0;
-
-            .arco-icon {
-              color: #165dff;
-              font-size: 16px;
-            }
-          }
-
-          :deep(.performance-tab),
-          :deep(.rank-history-tab) {
-            padding: 0;
-          }
-        }
       }
     }
   }

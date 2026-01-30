@@ -52,6 +52,46 @@ const employeeApi = {
   deleteEmployee(userCode: string) {
     return request.delete<boolean>(`/api/240/hr/employees/${userCode}`);
   },
+
+  /**
+   * 更新员工头像（上传文件并更新员工记录）
+   * @param userCode 员工工号
+   * @param file 头像文件
+   * @returns 头像URL
+   */
+  updateAvatar(userCode: string, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request.post<string>(
+      `/api/240/hr/employees/${userCode}/avatar`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+  },
+
+  /**
+   * 更新员工证件照（上传文件并更新员工记录）
+   * @param userCode 员工工号
+   * @param file 证件照文件
+   * @returns 证件照URL
+   */
+  updateIdCardPhoto(userCode: string, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request.post<string>(
+      `/api/240/hr/employees/${userCode}/id-card-photo`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+  },
 };
 
 export default employeeApi;

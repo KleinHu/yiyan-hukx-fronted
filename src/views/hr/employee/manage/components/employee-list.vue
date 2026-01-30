@@ -4,9 +4,14 @@
       <div class="panel-header">
         <div class="header-top">
           <span class="header-title">员工名录</span>
-          <a-button type="primary" size="mini" @click="handleAdd">
-            <template #icon><icon-plus /></template>新增
-          </a-button>
+          <a-space size="mini">
+            <a-button type="primary" size="mini" @click="handleAdd">
+              <template #icon><icon-plus /></template>新增
+            </a-button>
+            <a-button size="mini" @click="handleBatchPhoto">
+              <template #icon><icon-upload /></template>批量证件照
+            </a-button>
+          </a-space>
         </div>
         <a-space direction="vertical" fill :size="10" class="filter-area">
           <a-input-search
@@ -15,20 +20,20 @@
             allow-clear
             @search="handleSearch"
           />
-          <a-select
+          <a-tree-select
             v-model="filterDept"
             placeholder="按科室筛选"
+            :data="departmentTreeData"
+            :field-names="{
+              key: 'deptId',
+              title: 'deptName',
+              children: 'children',
+            }"
             allow-clear
+            allow-search
+            :tree-props="{ defaultExpandAll: false }"
             @change="handleSearch"
-          >
-            <a-option
-              v-for="dept in departmentList"
-              :key="dept.deptId"
-              :value="dept.deptId"
-            >
-              {{ dept.deptName }}
-            </a-option>
-          </a-select>
+          />
         </a-space>
       </div>
 
@@ -39,7 +44,7 @@
             :key="item.userCode"
             :class="[
               'employee-nav-card',
-              { active: currentRecord?.userCode === item.userCode },
+              { active: selectedUserCode === item.userCode },
             ]"
             @click="handleSelect(item)"
           >
@@ -86,14 +91,15 @@
 
 <script setup lang="ts">
   import { ref } from 'vue';
-  import type { Employee, Department } from '@/api/hr/types';
+  import type { EmployeeListItem, DepartmentTreeNode } from '@/api/hr/types';
   import { EmployeeStatusOptions } from '@/api/hr/types';
 
   interface Props {
-    employeeList: Employee[];
-    departmentList: Department[];
+    employeeList: EmployeeListItem[];
+    /** 部门树数据，用于按科室筛选的树形选择 */
+    departmentTreeData: DepartmentTreeNode[];
     loading?: boolean;
-    currentRecord?: Employee | null;
+    selectedUserCode?: string | null;
     pagination: {
       current: number;
       pageSize: number;
@@ -103,12 +109,13 @@
 
   const props = withDefaults(defineProps<Props>(), {
     loading: false,
-    currentRecord: null,
+    selectedUserCode: null,
   });
 
   const emit = defineEmits<{
     (e: 'add'): void;
-    (e: 'select', employee: Employee): void;
+    (e: 'batchPhoto'): void;
+    (e: 'select', userCode: string): void;
     (e: 'search'): void;
     (
       e: 'update:pagination',
@@ -142,8 +149,12 @@
     emit('add');
   };
 
-  const handleSelect = (employee: Employee) => {
-    emit('select', employee);
+  const handleBatchPhoto = () => {
+    emit('batchPhoto');
+  };
+
+  const handleSelect = (employee: EmployeeListItem) => {
+    emit('select', employee.userCode);
   };
 
   const handleSearch = () => {

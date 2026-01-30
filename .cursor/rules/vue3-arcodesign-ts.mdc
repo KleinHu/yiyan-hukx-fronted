@@ -1,6 +1,6 @@
 ---
-name: yiyan-rules
-description: 易研项目开发规范 - Vue3 + TypeScript + Arco Design + Spring Boot 微服务架构
+description: 
+alwaysApply: true
 ---
 
 ## 项目概述

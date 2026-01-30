@@ -51,6 +51,8 @@ export interface Employee {
   statusName?: string; // 状态名称
   isRepresentative?: boolean; // 是否职工代表
   isTeamLeader?: boolean; // 是否担任工组长
+  sourceType?: number; // 来源类型（tinyint）：1-校园招聘 2-社会招聘 3-内部推荐 4-劳务派遣 5-其他
+  sourceName?: string; // 来源地（展示用，关联查询或前端根据 sourceType 带出）
   // 兼容字段（保留旧字段以兼容现有代码）
   id?: number; // 兼容字段
   position?: string; // 兼容字段，等同于jobTitle
@@ -78,6 +80,18 @@ export interface Employee {
   updaterId?: number; // 兼容字段
   updaterName?: string; // 兼容字段
   deleted?: number; // 兼容字段，等同于isDeleted
+}
+
+/**
+ * 员工列表简化项（用于列表展示,只包含必要字段）
+ */
+export interface EmployeeListItem {
+  userCode: string; // 工号
+  userName: string; // 姓名
+  departmentName?: string; // 部门名称
+  status?: number; // 在职状态: 1-试用, 2-正式, 3-离职, 4-退休, 5-顶岗实习
+  statusName?: string; // 状态名称
+  avatarUrl?: string; // 头像URL（可选）
 }
 
 /**
@@ -429,6 +443,28 @@ export const EmployeeStatusOptions = [
   { label: '离职', value: EmployeeStatus.RESIGNED },
   { label: '退休', value: EmployeeStatus.RETIRED },
   { label: '顶岗实习', value: EmployeeStatus.INTERNSHIP },
+];
+
+/**
+ * 来源类型枚举（与数据库 tinyint 一致）
+ */
+export enum SourceType {
+  CAMPUS = 1, // 校园招聘
+  SOCIAL = 2, // 社会招聘
+  INTERNAL = 3, // 内部推荐
+  DISPATCH = 4, // 劳务派遣
+  OTHER = 5, // 其他
+}
+
+/**
+ * 来源类型选项（value 为后端 tinyint 编号）
+ */
+export const SourceTypeOptions = [
+  { label: '校园招聘', value: SourceType.CAMPUS },
+  { label: '社会招聘', value: SourceType.SOCIAL },
+  { label: '内部推荐', value: SourceType.INTERNAL },
+  { label: '劳务派遣', value: SourceType.DISPATCH },
+  { label: '其他', value: SourceType.OTHER },
 ];
 
 /**
