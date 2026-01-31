@@ -7,7 +7,12 @@
         hoverable
         class="dashboard-card"
       >
-        <Chart :options="ageChartOption" height="260px" />
+        <Chart
+          :options="ageChartOption"
+          height="260px"
+          style="cursor: pointer"
+          @click="onAgeChartClick"
+        />
       </a-card>
     </a-col>
     <a-col :span="6">
@@ -17,7 +22,12 @@
         hoverable
         class="dashboard-card"
       >
-        <Chart :options="eduChartOption" height="260px" />
+        <Chart
+          :options="eduChartOption"
+          height="260px"
+          style="cursor: pointer"
+          @click="onEduChartClick"
+        />
       </a-card>
     </a-col>
     <a-col :span="6">
@@ -27,7 +37,12 @@
         hoverable
         class="dashboard-card"
       >
-        <Chart :options="categoryChartOption" height="260px" />
+        <Chart
+          :options="categoryChartOption"
+          height="260px"
+          style="cursor: pointer"
+          @click="onCategoryChartClick"
+        />
       </a-card>
     </a-col>
     <a-col :span="6">
@@ -37,10 +52,48 @@
         hoverable
         class="dashboard-card"
       >
-        <Chart :options="levelChartOption" height="260px" />
+        <Chart
+          :options="levelChartOption"
+          height="260px"
+          style="cursor: pointer"
+          @click="onLevelChartClick"
+        />
       </a-card>
     </a-col>
   </a-row>
+
+  <!-- 学历占比点击详情弹窗 -->
+  <EducationDetailModal
+    v-model="eduDetailVisible"
+    :degree-name="eduDetailTitle"
+    :degree="eduDetailDegree"
+  />
+
+  <!-- 岗位分类分布点击详情弹窗 -->
+  <JobCategoryDetailModal
+    v-model="categoryDetailVisible"
+    :category-name="categoryDetailTitle"
+    :job-category="categoryDetailValue"
+  />
+
+  <!-- 年龄分布点击详情弹窗 -->
+  <AgeDetailModal
+    v-model="ageDetailVisible"
+    :age-range-name="ageDetailTitle"
+    :min-age="ageDetailMinAge"
+    :max-age="ageDetailMaxAge"
+  />
+
+  <!-- 职称等级分布点击详情弹窗 -->
+  <TitleLevelDetailModal
+    v-model="levelDetailVisible"
+    :title-level-name="levelDetailTitle"
+    :title-level="levelDetailValue"
+  />
+
+  <!-- 职级分布点击详情弹窗 -->
+  <RankDetailModal v-model="rankDetailVisible" :rank-name="rankDetailTitle" />
+
   <!-- 职级等级分布 - 单独一行 -->
   <a-row :gutter="20" style="margin-top: 20px">
     <a-col :span="24">
@@ -50,21 +103,131 @@
         hoverable
         class="dashboard-card"
       >
-        <Chart :options="rankChartOption" height="400px" />
+        <Chart
+          :options="rankChartOption"
+          height="400px"
+          style="cursor: pointer"
+          @click="onRankChartClick"
+        />
       </a-card>
     </a-col>
   </a-row>
 </template>
 
 <script setup lang="ts">
-  // import { computed } from 'vue';
+  import { ref } from 'vue';
   import Chart from '@/components/chart/index.vue';
   import useChartOption from '@/hooks/chart-option';
   import { DashboardData } from '@/api/hr/dashboard';
+  import EducationDetailModal from './education-detail-drawer.vue';
+  import JobCategoryDetailModal from './job-category-detail-drawer.vue';
+  import AgeDetailModal from './age-detail-drawer.vue';
+  import TitleLevelDetailModal from './title-level-detail-drawer.vue';
+  import RankDetailModal from './rank-detail-drawer.vue';
 
   const props = defineProps<{
     data: DashboardData;
   }>();
+
+  /** 学历名称 -> 学历值（与看板统计一致：0-无学历，2-大专，3-本科，4-硕士，5-博士） */
+  const DEGREE_NAME_TO_VALUE: Record<string, number> = {
+    博士: 5,
+    硕士: 4,
+    本科: 3,
+    大专: 2,
+    无学历: 0,
+  };
+
+  /** 岗位分类名称 -> 岗位分类值（与看板统计一致：1-技术岗，2-职能岗，3-技能岗） */
+  const JOB_CATEGORY_NAME_TO_VALUE: Record<string, number> = {
+    技术岗: 1,
+    职能岗: 2,
+    技能岗: 3,
+  };
+
+  /** 年龄区间名称 -> { minAge?, maxAge? }（与后端一致：maxAge 不含，minAge 含） */
+  const AGE_RANGE_NAME_TO_PARAMS: Record<
+    string,
+    { minAge?: number; maxAge?: number }
+  > = {
+    '25岁以下': { maxAge: 25 },
+    '25-35岁': { minAge: 25, maxAge: 35 },
+    '35-45岁': { minAge: 35, maxAge: 45 },
+    '45-55岁': { minAge: 45, maxAge: 55 },
+    '55岁以上': { minAge: 55 },
+  };
+
+  /** 职称等级名称 -> 职称等级值（与看板统计一致：1-初级，2-中级，3-副高级，4-正高级） */
+  const TITLE_LEVEL_NAME_TO_VALUE: Record<string, number> = {
+    初级: 1,
+    中级: 2,
+    副高级: 3,
+    正高级: 4,
+  };
+
+  const eduDetailVisible = ref(false);
+  const eduDetailTitle = ref('');
+  const eduDetailDegree = ref(0);
+
+  const categoryDetailVisible = ref(false);
+  const categoryDetailTitle = ref('');
+  const categoryDetailValue = ref(1);
+
+  const ageDetailVisible = ref(false);
+  const ageDetailTitle = ref('');
+  const ageDetailMinAge = ref<number | undefined>(undefined);
+  const ageDetailMaxAge = ref<number | undefined>(undefined);
+
+  const levelDetailVisible = ref(false);
+  const levelDetailTitle = ref('');
+  const levelDetailValue = ref(1);
+
+  const rankDetailVisible = ref(false);
+  const rankDetailTitle = ref('');
+
+  const onEduChartClick = (params: { name?: string }) => {
+    const name = params?.name?.trim() || '';
+    const degree = DEGREE_NAME_TO_VALUE[name];
+    if (degree === undefined) return;
+    eduDetailTitle.value = name;
+    eduDetailDegree.value = degree;
+    eduDetailVisible.value = true;
+  };
+
+  const onCategoryChartClick = (params: { name?: string }) => {
+    const name = params?.name?.trim() || '';
+    const jobCategory = JOB_CATEGORY_NAME_TO_VALUE[name];
+    if (jobCategory === undefined) return;
+    categoryDetailTitle.value = name;
+    categoryDetailValue.value = jobCategory;
+    categoryDetailVisible.value = true;
+  };
+
+  const onAgeChartClick = (params: { name?: string }) => {
+    const name = params?.name?.trim() || '';
+    const range = AGE_RANGE_NAME_TO_PARAMS[name];
+    if (!range) return;
+    ageDetailTitle.value = name;
+    ageDetailMinAge.value = range.minAge;
+    ageDetailMaxAge.value = range.maxAge;
+    ageDetailVisible.value = true;
+  };
+
+  const onLevelChartClick = (params: { name?: string }) => {
+    const name = params?.name?.trim() || '';
+    const titleLevel = TITLE_LEVEL_NAME_TO_VALUE[name];
+    if (titleLevel === undefined) return;
+    levelDetailTitle.value = name;
+    levelDetailValue.value = titleLevel;
+    levelDetailVisible.value = true;
+  };
+
+  const onRankChartClick = (params: { name?: string }) => {
+    const name = params?.name?.trim() || '';
+    if (!name) return;
+    rankDetailTitle.value = name;
+    rankDetailVisible.value = true;
+  };
 
   // 年龄分布柱状图
   const { chartOption: ageChartOption } = useChartOption(() => {

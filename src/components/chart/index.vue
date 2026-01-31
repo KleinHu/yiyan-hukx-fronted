@@ -4,6 +4,7 @@
     :option="options"
     :autoresize="autoResize"
     :style="{ width, height }"
+    @click="(e: any) => emit('click', e)"
   />
 </template>
 
@@ -11,6 +12,10 @@
   import { ref, nextTick } from 'vue';
   import VCharts from 'vue-echarts';
   // import { useAppStore } from '@/store';
+
+  const emit = defineEmits<{
+    (e: 'click', params: any): void;
+  }>();
 
   defineProps({
     options: {

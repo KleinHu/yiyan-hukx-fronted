@@ -82,34 +82,69 @@
             </div>
           </template>
           <template #totalEmployees="{ record }">
-            <a-tag color="blue" size="small">{{ record.totalEmployees }}</a-tag>
+            <a-tag
+              color="blue"
+              size="small"
+              style="cursor: pointer"
+              @click="onCellClick(record, '全部')"
+            >
+              {{ record.totalEmployees }}
+            </a-tag>
           </template>
           <template #doctorCount="{ record }">
-            <a-tag v-if="record.doctorCount > 0" color="red" size="small">
+            <a-tag
+              v-if="record.doctorCount > 0"
+              color="red"
+              size="small"
+              style="cursor: pointer"
+              @click="onCellClick(record, '博士')"
+            >
               {{ record.doctorCount }}
             </a-tag>
             <span v-else style="color: #c9cdd4">-</span>
           </template>
           <template #masterCount="{ record }">
-            <a-tag v-if="record.masterCount > 0" color="orange" size="small">
+            <a-tag
+              v-if="record.masterCount > 0"
+              color="orange"
+              size="small"
+              style="cursor: pointer"
+              @click="onCellClick(record, '硕士')"
+            >
               {{ record.masterCount }}
             </a-tag>
             <span v-else style="color: #c9cdd4">-</span>
           </template>
           <template #bachelorCount="{ record }">
-            <a-tag v-if="record.bachelorCount > 0" color="green" size="small">
+            <a-tag
+              v-if="record.bachelorCount > 0"
+              color="green"
+              size="small"
+              style="cursor: pointer"
+              @click="onCellClick(record, '本科')"
+            >
               {{ record.bachelorCount }}
             </a-tag>
             <span v-else style="color: #c9cdd4">-</span>
           </template>
           <template #collegeCount="{ record }">
-            <a-tag v-if="record.collegeCount > 0" color="cyan" size="small">
+            <a-tag
+              v-if="record.collegeCount > 0"
+              color="cyan"
+              size="small"
+              style="cursor: pointer"
+              @click="onCellClick(record, '大专')"
+            >
               {{ record.collegeCount }}
             </a-tag>
             <span v-else style="color: #c9cdd4">-</span>
           </template>
           <template #noEducationCount="{ record }">
-            <span v-if="record.noEducationCount > 0" style="color: #c9cdd4">
+            <span
+              v-if="record.noEducationCount > 0"
+              style="color: #4e5969; cursor: pointer"
+              @click="onCellClick(record, '无学历')"
+            >
               {{ record.noEducationCount }}
             </span>
             <span v-else style="color: #c9cdd4">-</span>
@@ -148,6 +183,7 @@
                     width: item.percent + '%',
                     backgroundColor: item.color,
                   }"
+                  @click="onBarClick(record, item)"
                 ></div>
               </a-popover>
             </div>
@@ -157,9 +193,23 @@
 
       <!-- 图表视图 -->
       <div v-else>
-        <Chart :options="chartOption" height="400px" />
+        <Chart
+          :options="chartOption"
+          height="400px"
+          style="cursor: pointer"
+          @click="onChartClick"
+        />
       </div>
     </a-card>
+
+    <!-- 科室学历详情抽屉 -->
+    <DeptEduDetailModal
+      v-model="detailVisible"
+      :dept-id="detailDeptId"
+      :dept-name="detailDeptName"
+      :degree="detailDegree"
+      :degree-name="detailDegreeName"
+    />
   </div>
 </template>
 
@@ -168,6 +218,7 @@
   import Chart from '@/components/chart/index.vue';
   import useChartOption from '@/hooks/chart-option';
   import { DashboardData, DepartmentEducationStat } from '@/api/hr/dashboard';
+  import DeptEduDetailModal from './dept-edu-detail-drawer.vue';
 
   const props = defineProps<{
     data: DashboardData;
@@ -176,6 +227,83 @@
   const viewMode = ref<'table' | 'chart'>('table');
   const expandedKeys = ref<string[]>([]);
   const filterDeptIds = ref<string[]>([]); // 存储选中的科室ID
+
+  // 详情抽屉状态
+  const detailVisible = ref(false);
+  const detailDeptId = ref('');
+  const detailDeptName = ref('');
+  const detailDegree = ref(0);
+  const detailDegreeName = ref('');
+
+  // 学历映射
+  const DEGREE_MAP: Record<string, number> = {
+    博士: 5,
+    硕士: 4,
+    本科: 3,
+    大专: 2,
+    无学历: 0,
+    全部: -1,
+  };
+
+  const onChartClick = (params: any) => {
+    const { seriesName, name } = params;
+    const degree = DEGREE_MAP[seriesName];
+    if (degree === undefined) return;
+
+    // 找到对应的科室ID
+    const flattened = flattenDepts(treeData.value, 1000);
+    const dept = flattened.find((d) => d.deptName === name);
+    if (!dept) return;
+
+    detailDeptId.value = dept.deptId;
+    detailDeptName.value = dept.deptName;
+    detailDegree.value = degree;
+    detailDegreeName.value = seriesName;
+    detailVisible.value = true;
+  };
+
+  /** 处理表格分布条点击 */
+  const onBarClick = (record: DepartmentEducationStat, item: any) => {
+    const degree = DEGREE_MAP[item.label];
+    if (degree === undefined) return;
+
+    detailDeptId.value = record.deptId;
+    detailDeptName.value = record.deptName;
+    detailDegree.value = degree;
+    detailDegreeName.value = item.label;
+    detailVisible.value = true;
+  };
+
+  /** 处理表格数字点击 */
+  const onCellClick = (record: DepartmentEducationStat, degreeName: string) => {
+    const degree = DEGREE_MAP[degreeName];
+    if (degree === undefined) return;
+
+    detailDeptId.value = record.deptId;
+    detailDeptName.value = record.deptName;
+    detailDegree.value = degree;
+    detailDegreeName.value = degreeName;
+    detailVisible.value = true;
+  };
+
+  // 辅助函数：扁平化
+  const flattenDepts = (
+    depts: DepartmentEducationStat[],
+    maxCount = 1000
+  ): DepartmentEducationStat[] => {
+    const result: DepartmentEducationStat[] = [];
+    const traverse = (items: DepartmentEducationStat[]) => {
+      items.forEach((item) => {
+        if (result.length >= maxCount) return;
+        result.push(item);
+        if (item.children && item.children.length > 0) {
+          traverse(item.children);
+        }
+      });
+    };
+    traverse(depts);
+    return result;
+  };
 
   // 原始树形数据
   const treeData = computed(() => {
@@ -342,6 +470,7 @@
       { label: '硕士', count: record.masterCount, color: '#F77234' },
       { label: '本科', count: record.bachelorCount, color: '#00B42A' },
       { label: '大专', count: record.collegeCount, color: '#165DFF' },
+      { label: '无学历', count: record.noEducationCount, color: '#86909c' },
     ];
 
     return items
@@ -368,25 +497,6 @@
         },
       };
     }
-
-    // 扁平化树形数据，取前10个科室（包含所有层级）
-    const flattenDepts = (
-      depts: DepartmentEducationStat[],
-      maxCount = 10
-    ): DepartmentEducationStat[] => {
-      const result: DepartmentEducationStat[] = [];
-      const traverse = (items: DepartmentEducationStat[]) => {
-        items.forEach((item) => {
-          if (result.length >= maxCount) return;
-          result.push(item);
-          if (item.children && item.children.length > 0) {
-            traverse(item.children);
-          }
-        });
-      };
-      traverse(depts);
-      return result.slice(0, maxCount);
-    };
 
     const topDepts = flattenDepts(data, 10);
     const deptNames = topDepts.map((d) => d.deptName);
